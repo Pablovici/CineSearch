@@ -206,13 +206,11 @@ def _hero_carousel_fragment() -> None:
     """Hero carousel: auto-advances every 5 s (no manual prev/next buttons)."""
     n = len(_HERO_IDS)
     idx = (int(time.time()) // 5) % n
-
     tmdb_id = _HERO_IDS[idx]
     try:
         details = _details(tmdb_id)
     except Exception:
         details = {}
-
     render_hero_section(details, idx, n, tmdb_id=tmdb_id)
 
 
@@ -280,7 +278,7 @@ def main() -> None:
     if detail_param:
         try:
             src     = st.query_params.get("src", "home")
-            q_param = st.query_params.get("q", "")   # query survives page reload in URL
+            q_param = st.query_params.get("q", "")
             st.query_params.clear()
             if src == "search" and q_param:
                 st.session_state["_detail_return_q"] = q_param
@@ -297,7 +295,7 @@ def main() -> None:
         try:
             st.query_params.clear()
             st.session_state["app_started"] = True
-            st.session_state.pop("_detail_return_q", None)  # coming from home
+            st.session_state.pop("_detail_return_q", None)
             st.session_state["detail_tmdb_id"] = int(hero_tmdb)
             st.rerun()
         except (ValueError, TypeError):
@@ -422,7 +420,7 @@ def main() -> None:
                 trend_posters = _prefetch_poster_urls(trending)
             render_trending_row(trending, trend_posters)
 
-        # À découvrir section — sélection aléatoire stable (ne change pas quand les filtres bougent)
+        # À découvrir section — stable random selection (unchanged when filters move)
         pool = _featured_movies_pool()
         if "_featured_selection" not in st.session_state and pool:
             st.session_state["_featured_selection"] = random.sample(pool, min(12, len(pool)))
@@ -485,10 +483,11 @@ def main() -> None:
     # ── Sort + results count row ───────────────────────────────────────────────
     col_count, col_sort = st.columns([4, 2])
     n_total = len(rows)
+    capped  = n_total >= config.SEARCH_LIMIT
+    label   = f"{n_total}+ FILMS TROUVÉS" if capped else f'{n_total} FILM{"S" if n_total != 1 else ""} TROUVÉ{"S" if n_total != 1 else ""}'
     with col_count:
         st.markdown(
-            f'<p class="section-count">'
-            f'{n_total} FILM{"S" if n_total != 1 else ""} TROUVÉ{"S" if n_total != 1 else ""}</p>',
+            f'<p class="section-count">{label}</p>',
             unsafe_allow_html=True,
         )
     with col_sort:

@@ -51,14 +51,9 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 [data-testid="stSidebar"] {
     background: rgba(6,6,8,0.99) !important;
     border-right: 1px solid rgba(255,255,255,0.06) !important;
-    min-width: 300px !important;
-    max-width: 300px !important;
-    width: 300px !important;
 }
 [data-testid="stSidebar"] > div:first-child {
     padding-top: 1.25rem !important;
-    min-width: 300px !important;
-    width: 300px !important;
 }
 [data-testid="stSidebar"] h1,[data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3,[data-testid="stSidebar"] p { color: #fff !important; }
@@ -759,7 +754,7 @@ def render_results_cards(
     poster_urls: Optional[Dict[int, str]] = None,
     return_q: str = "",
 ) -> None:
-    """4-column poster cards with visual badges.
+    """3-column poster cards with visual badges.
 
     Clicking a card navigates to the full detail page via query params.
     return_q is embedded in the URL so the search query survives the page reload.
