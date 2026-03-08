@@ -84,7 +84,7 @@ def movie_details(request):
             _CORS_HEADERS,
         )
 
-    # ── Call TMDB API ─────────────────────────────────────────────────────────
+    # ── Call TMDB API (movie details + credits) ───────────────────────────────
     try:
         resp = requests.get(
             f"{_TMDB_BASE}/movie/{tmdb_id}",
@@ -102,6 +102,93 @@ def movie_details(request):
     except requests.exceptions.RequestException as exc:
         return ({"error": f"TMDB request failed: {exc}"}, 502, _CORS_HEADERS)
 
+    # ── Call TMDB watch/providers (best-effort, never blocks response) ────────
+    providers: dict = {}
+    try:
+        prov_resp = requests.get(
+            f"{_TMDB_BASE}/movie/{tmdb_id}/watch/providers",
+            params={"api_key": _TMDB_API_KEY},
+            timeout=10,
+        )
+        if prov_resp.status_code == 200:
+            prov_results = prov_resp.json().get("results", {})
+            # Prefer FR, then CH, then US as fallback
+            region_data = (
+                prov_results.get("FR")
+                or prov_results.get("CH")
+                or prov_results.get("US")
+                or {}
+            )
+            # region_data["link"] is a TMDB/JustWatch URL for this movie in this region
+            watch_link: str = region_data.get("link", "")
+            providers["watch_link"] = watch_link
+            for category in ("flatrate", "rent", "buy", "free", "ads"):
+                items = region_data.get(category, [])
+                if items:
+                    providers[category] = [
+                        {
+                            "provider_name": p.get("provider_name"),
+                            "logo_url": (
+                                f"https://image.tmdb.org/t/p/w92{p['logo_path']}"
+                                if p.get("logo_path")
+                                else None
+                            ),
+                        }
+                        for p in items
+                    ]
+    except Exception as exc:
+        print(f"  [warn] watch/providers failed: {exc}")
+
+    # ── Extract director from crew ────────────────────────────────────────────
+    crew = data.get("credits", {}).get("crew", [])
+    director_entry = next(
+        (c for c in crew if c.get("job") == "Director"), None
+    )
+    director: dict = {}
+    director_other_movies: list = []
+
+    if director_entry:
+        director = {
+            "name":      director_entry.get("name", ""),
+            "person_id": director_entry.get("id"),
+        }
+        # ── Fetch director's other films (best-effort) ────────────────────────
+        person_id = director_entry.get("id")
+        if person_id:
+            try:
+                films_resp = requests.get(
+                    f"{_TMDB_BASE}/person/{person_id}/movie_credits",
+                    params={"api_key": _TMDB_API_KEY},
+                    timeout=10,
+                )
+                if films_resp.status_code == 200:
+                    # crew credits where job == "Director"
+                    directed = [
+                        m for m in films_resp.json().get("crew", [])
+                        if m.get("job") == "Director"
+                        and m.get("id") != tmdb_id          # exclude current film
+                        and m.get("vote_count", 0) >= 30    # skip obscure entries
+                        and m.get("poster_path")            # must have a poster
+                    ]
+                    # Sort by popularity (vote_count) then take top 8
+                    directed.sort(key=lambda m: m.get("vote_count", 0), reverse=True)
+                    director_other_movies = [
+                        {
+                            "tmdb_id":      m["id"],
+                            "tmdbId":       m["id"],
+                            "title":        m.get("title", ""),
+                            "release_year": int(m["release_date"][:4])
+                                            if m.get("release_date") else None,
+                            # TMDB vote_average is 0-10; store as 0-5 to match MovieLens scale
+                            "avg_rating":   round(m.get("vote_average", 0) / 2, 2),
+                            "rating_count": m.get("vote_count", 0),
+                            "poster_url":   f"{_TMDB_IMG_BASE}{m['poster_path']}",
+                        }
+                        for m in directed[:8]
+                    ]
+            except Exception as exc:
+                print(f"  [warn] director filmography failed: {exc}")
+
     # ── Shape the response ────────────────────────────────────────────────────
     poster_path = data.get("poster_path")
     cast = [
@@ -110,9 +197,12 @@ def movie_details(request):
     ]
 
     print(f"\n── TMDB RESPONSE (tmdb_id={tmdb_id}) ──")
-    print(f"  title   = {data.get('title')}")
-    print(f"  rating  = {data.get('vote_average')} ({data.get('vote_count')} votes)")
-    print(f"  runtime = {data.get('runtime')} min\n")
+    print(f"  title     = {data.get('title')}")
+    print(f"  director  = {director.get('name', '—')}")
+    print(f"  rating    = {data.get('vote_average')} ({data.get('vote_count')} votes)")
+    print(f"  runtime   = {data.get('runtime')} min")
+    print(f"  providers = {list(providers.keys())}")
+    print(f"  other_films = {len(director_other_movies)}\n")
 
     return (
         {
@@ -130,6 +220,9 @@ def movie_details(request):
             "genres": [g["name"] for g in data.get("genres", [])],
             "cast": cast,
             "poster_url": f"{_TMDB_IMG_BASE}{poster_path}" if poster_path else None,
+            "providers": providers,
+            "director": director,
+            "director_other_movies": director_other_movies,
         },
         200,
         _CORS_HEADERS,

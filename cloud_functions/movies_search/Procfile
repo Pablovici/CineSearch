@@ -1,0 +1,1 @@
+web: functions-framework --target=movies_search --port=$PORT

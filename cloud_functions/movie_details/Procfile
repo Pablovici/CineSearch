@@ -1,0 +1,1 @@
+web: functions-framework --target=movie_details --port=$PORT
