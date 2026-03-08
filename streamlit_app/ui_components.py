@@ -132,12 +132,14 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 }
 
 /* ── Hero section ── */
-.hero-wrap { position:relative; width:100%; border-radius:18px; overflow:visible; margin-bottom:0.75rem; min-height:460px; }
+.hero-wrap { position:relative; width:100%; border-radius:18px; overflow:visible; margin-bottom:0.75rem; min-height:72vh; display:flex; align-items:flex-end; }
 /* Separate clip layer so blur/scale stay bounded but content can overflow */
 .hero-bg-container { position:absolute; inset:0; border-radius:18px; overflow:hidden; }
 .hero-bg { position:absolute; inset:0; background-size:cover; background-position:center top; filter:blur(6px) brightness(0.48); transform:scale(1.05); }
-.hero-grad { position:absolute; inset:0; background:linear-gradient(90deg,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.50) 52%,rgba(0,0,0,0.10) 100%); }
-.hero-content { position:relative; z-index:2; padding:4rem 3.5rem 3rem; max-width:60%; }
+.hero-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.55) 45%,rgba(0,0,0,0.10) 100%); }
+.hero-content { position:relative; z-index:2; padding:2.5rem 3.5rem 4.5rem; max-width:60%; }
+/* Mobile-only CinéSearch title above carousel */
+.hero-mobile-brand { display:none; }
 .hero-genre { display:inline-block; background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.18); border-radius:4px; padding:0.22rem 0.65rem; font-size:0.68rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.9rem; }
 .hero-title { font-size:3rem; font-weight:800; color:#fff; line-height:1.05; margin-bottom:0.9rem; letter-spacing:-0.03em; }
 .hero-overview { font-size:0.87rem; color:rgba(255,255,255,0.55); line-height:1.75; margin-bottom:0; max-width:460px; }
@@ -146,6 +148,22 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 .hero-cta-btn:visited { color:#fff !important; text-decoration:none !important; }
 .hero-cta-btn:active { color:#fff !important; text-decoration:none !important; }
 .hero-cta-btn:hover { background:rgba(255,255,255,0.1); border-color:#fff; color:#fff !important; text-decoration:none !important; }
+/* Hero inline search form — positioned at top-center of the carousel */
+.hero-search-top { position:absolute; top:2.2rem; left:50%; transform:translateX(-50%); z-index:4; width:min(55%,440px); }
+.hero-search-form { margin:0; }
+.hero-search-wrap { display:flex; align-items:center; background:rgba(10,10,10,0.55); border:1px solid rgba(255,255,255,0.22); border-radius:30px; padding:0.38rem 0.42rem 0.38rem 1.15rem; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,border-color 0.2s; }
+.hero-search-wrap:focus-within { background:rgba(10,10,10,0.72); border-color:rgba(255,255,255,0.50); }
+.hero-search-input { flex:1; background:transparent; border:none; outline:none; color:#fff; font-size:0.88rem; font-family:inherit; min-width:0; }
+.hero-search-input::placeholder { color:rgba(255,255,255,0.42); }
+.hero-search-btn { background:rgba(255,255,255,0.15); border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; color:#fff; font-size:0.85rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background 0.2s; }
+.hero-search-btn:hover { background:rgba(255,255,255,0.30); }
+/* Streaming providers section */
+.providers-section { margin-top:1rem; }
+.providers-category { font-size:0.7rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(148,163,184,0.7); margin-bottom:0.5rem; }
+.providers-row { display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center; margin-bottom:0.85rem; }
+.provider-logo { width:40px; height:40px; border-radius:8px; object-fit:cover; }
+.provider-name { font-size:0.72rem; color:rgba(255,255,255,0.65); text-align:center; margin-top:0.2rem; }
+.provider-item { display:flex; flex-direction:column; align-items:center; width:44px; }
 .hero-dots { position:absolute; bottom:1.5rem; left:50%; transform:translateX(-50%); display:flex; gap:0.5rem; z-index:3; }
 .hero-dot { height:3px; width:18px; border-radius:2px; background:rgba(255,255,255,0.3); transition:all 0.3s ease; }
 .hero-dot.active { background:#fff; width:28px; }
@@ -271,6 +289,11 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 /* ── Info boxes ── */
 [data-testid="stInfo"] { background:rgba(14,14,16,0.6) !important; border-color:rgba(255,255,255,0.07) !important; color:rgba(255,255,255,0.6) !important; border-radius:10px !important; }
 
+/* ── Utility text styles (used in app.py via st.markdown) ── */
+.section-count { color:rgba(255,255,255,0.35); font-size:0.68rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; margin:0.6rem 0 0; }
+.results-end   { color:rgba(255,255,255,0.2);  font-size:0.8rem;  text-align:center; margin-top:1.5rem; }
+.history-label { color:rgba(255,255,255,0.35); font-size:0.62rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; margin:0.7rem 0 0.3rem; }
+
 /* ── Suppress layout artifact of height-0 components.html iframes (used for JS injection) ── */
 [data-testid="stCustomComponentV1"] {
     display: none !important;
@@ -285,38 +308,64 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
    ══════════════════════════════════════════════════════ */
 @media screen and (max-width: 768px) {
 
-    /* ── Hero : réduction des tailles ── */
-    .hero-wrap    { min-height: 240px !important; border-radius: 12px !important; }
-    .hero-content { padding: 1.25rem 1.1rem 1rem !important; max-width: 88% !important; }
-    .hero-genre   { font-size: 0.56rem !important; padding: 0.14rem 0.45rem !important;
-                    margin-bottom: 0.5rem !important; }
-    .hero-title   { font-size: 1.4rem !important; margin-bottom: 0.45rem !important; }
-    .hero-overview{ font-size: 0.74rem !important; line-height: 1.5 !important; }
-    .hero-cta-btn { padding: 0.5rem 1.1rem !important; font-size: 0.74rem !important;
-                    margin-top: 0.85rem !important; border-radius: 20px !important; }
-    .hero-dots    { bottom: 0.6rem !important; }
-    .hero-dot     { height: 2px !important; width: 12px !important; }
-    .hero-dot.active { width: 18px !important; }
+    /* ── Mobile brand title above carousel ── */
+    .hero-mobile-brand { display: block !important; font-size: 1.6rem !important;
+                         font-weight: 800 !important; color: #fff !important;
+                         letter-spacing: -0.03em !important; margin-bottom: 0.6rem !important;
+                         text-align: center !important; }
+    /* ── Hero : texte en bas à gauche ── */
+    .hero-wrap    { min-height: 58vh !important; border-radius: 12px !important;
+                    align-items: flex-end !important; }
+    .hero-content { padding: 1.2rem 1.4rem 2.8rem !important; max-width: 92% !important; }
+    .hero-genre   { font-size: 0.62rem !important; padding: 0.16rem 0.5rem !important;
+                    margin-bottom: 0.6rem !important; }
+    .hero-title   { font-size: 1.9rem !important; margin-bottom: 0.5rem !important; }
+    .hero-overview{ font-size: 0.78rem !important; line-height: 1.6 !important; }
+    .hero-cta-btn { padding: 0.6rem 1.4rem !important; font-size: 0.78rem !important;
+                    margin-top: 1rem !important; border-radius: 20px !important; }
+    .hero-search-top   { width: min(88%, 340px) !important; top: 0.9rem !important; }
+    .hero-search-wrap  { padding: 0.28rem 0.35rem 0.28rem 0.9rem !important; }
+    .hero-search-input { font-size: 0.8rem !important; }
+    .hero-search-btn   { width: 26px !important; height: 26px !important; font-size: 0.75rem !important; }
+    .hero-dots    { bottom: 0.9rem !important; }
+    .hero-dot     { height: 2px !important; width: 14px !important; }
+    .hero-dot.active { width: 22px !important; }
 
-    /* ── Grilles de cartes : scroll horizontal façon Netflix ──
-       Les colonnes Streamlit s'empilent sur mobile par défaut.
-       On force un scroll horizontal avec largeur fixe par carte. ── */
-    [data-testid="stHorizontalBlock"]:has(.mc-card) {
+    /* ── Marges horizontales globales sur mobile ── */
+    .block-container {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+
+    /* ── Sections accueil (4+ colonnes) : scroll horizontal façon Netflix ── */
+    [data-testid="stHorizontalBlock"]:has(.mc-card):has([data-testid="stColumn"]:nth-child(4)) {
         overflow-x: auto !important;
         flex-wrap: nowrap !important;
         -webkit-overflow-scrolling: touch !important;
         scrollbar-width: none !important;
         padding-bottom: 6px !important;
     }
-    [data-testid="stHorizontalBlock"]:has(.mc-card)::-webkit-scrollbar {
+    [data-testid="stHorizontalBlock"]:has(.mc-card):has([data-testid="stColumn"]:nth-child(4))::-webkit-scrollbar {
         display: none !important;
     }
-    /* Chaque colonne de carte : largeur fixe 105 px ≈ 3–4 cartes visibles */
-    [data-testid="stHorizontalBlock"]:has(.mc-card) > [data-testid="stColumn"] {
+    [data-testid="stHorizontalBlock"]:has(.mc-card):has([data-testid="stColumn"]:nth-child(4)) > [data-testid="stColumn"] {
         min-width: 105px !important;
         max-width: 105px !important;
         flex: 0 0 105px !important;
         width: 105px !important;
+    }
+
+    /* ── Grille résultats (3 colonnes) : wrapping centré ── */
+    [data-testid="stHorizontalBlock"]:has(.mc-card):not(:has([data-testid="stColumn"]:nth-child(4))) {
+        flex-wrap: wrap !important;
+        overflow-x: hidden !important;
+        justify-content: center !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.mc-card):not(:has([data-testid="stColumn"]:nth-child(4))) > [data-testid="stColumn"] {
+        min-width: 30% !important;
+        max-width: 32% !important;
+        flex: 0 0 30% !important;
+        width: 30% !important;
     }
 
     /* ── Texte sous les cartes ── */
@@ -325,10 +374,18 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
     .mc-meta  { font-size: 0.6rem !important; margin-bottom: 0.2rem !important; }
     .mc-badge { font-size: 0.5rem !important; padding: 0.08rem 0.28rem !important; }
 
-    /* ── Page de détail : réduction de padding/titres ── */
-    .detail-hero-content { padding: 1.5rem 1.25rem 1.25rem !important; }
-    .detail-hero-title   { font-size: 1.6rem !important; }
-    .detail-hero-tagline { font-size: 0.82rem !important; }
+    /* ── Page de détail : réduction de padding/titres + espace réduit ── */
+    .detail-hero         { min-height: unset !important; margin-bottom: 0.5rem !important; }
+    .detail-hero-content { padding: 0.75rem 1.25rem 0.75rem !important; }
+    .detail-hero-title   { font-size: 1.4rem !important; margin-bottom: 0.2rem !important; }
+    .detail-hero-tagline { font-size: 0.78rem !important; }
+
+    /* ── Affiche du détail : taille réduite sur mobile ── */
+    [data-testid="stImage"] img {
+        max-width: 55% !important;
+        margin: 0 auto !important;
+        display: block !important;
+    }
 }
 
 </style>
@@ -365,6 +422,79 @@ def _get_badge(avg_rating: float, rating_count: int, release_year: int
     if release_year and release_year <= 1985:
         return ("CLASSIQUE", "#A78BFA", "rgba(167,139,250,0.18)", "rgba(167,139,250,0.35)")
     return None
+
+
+# ── Shared card renderer ──────────────────────────────────────────────────────
+
+def _render_movie_card(
+    col,
+    movie: Dict,
+    poster_urls: Dict[int, str],
+    src: str = "home",
+    q_encoded: str = "",
+) -> None:
+    """Render a single movie poster card into a Streamlit column.
+
+    Shared by render_featured_grid, render_trending_row, and render_results_cards
+    to avoid code duplication.
+
+    Args:
+        col:         Streamlit column object to render into.
+        movie:       Dict with keys title, release_year, avg_rating, rating_count,
+                     tmdbId, genres.
+        poster_urls: Mapping of tmdb_id → poster URL (pre-fetched by the caller).
+        src:         Navigation source tag embedded in the detail URL ('home' or 'search').
+        q_encoded:   URL-encoded search query to restore on back-navigation (search only).
+    """
+    title  = str(movie.get("title", ""))
+    year   = int(movie.get("release_year", 0)) if movie.get("release_year") else 0
+    rating = float(movie.get("avg_rating") or 0)
+    votes  = int(movie.get("rating_count") or 0)
+
+    tmdb_id: Optional[int] = None
+    try:
+        raw = movie.get("tmdbId")
+        if raw is not None and not pd.isna(raw):
+            tmdb_id = int(raw)
+    except (ValueError, TypeError):
+        pass
+
+    # ── Poster image or gradient fallback ─────────────────────────────────────
+    poster = poster_urls.get(tmdb_id) if tmdb_id else None
+    if poster:
+        inner_html = f'<img class="mc-poster" src="{poster}" alt="{title}">'
+    else:
+        gradient = _genre_gradient(str(movie.get("genres", "")))
+        inner_html = f'<div class="mc-poster-fallback" style="background:{gradient};"></div>'
+
+    # ── Badge (TOP RATED / POPULAR / RÉCENT / CLASSIQUE) ─────────────────────
+    badge_html = ""
+    badge_info = _get_badge(rating, votes, year) if year else None
+    if badge_info:
+        label, color, bg, border = badge_info
+        badge_html = (
+            f'<span class="mc-badge" style="background:{bg};color:{color};'
+            f'border:1px solid {border};">{label}</span>'
+        )
+
+    # ── Clickable link wrapping the card ──────────────────────────────────────
+    if tmdb_id:
+        href = f"?detail={tmdb_id}&src={src}&q={q_encoded}"
+        link_open  = f'<a class="mc-item-link" href="{href}" target="_self">'
+        link_close = "</a>"
+    else:
+        link_open  = '<div class="mc-item-link">'
+        link_close = "</div>"
+
+    with col:
+        st.markdown(
+            f"{link_open}"
+            f'<div class="mc-card">{badge_html}{inner_html}</div>'
+            f"{link_close}"
+            f'<div class="mc-title">{title}</div>'
+            f'<div class="mc-meta">★ {rating * 2:.1f} · {year if year else "—"}</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ── Page-level ────────────────────────────────────────────────────────────────
@@ -470,37 +600,6 @@ def render_sidebar_header() -> None:
     )
 
 
-# ── Landing page ──────────────────────────────────────────────────────────────
-
-
-def render_landing_page(genres: Optional[List[str]] = None) -> bool:
-    """
-    Splash screen.
-    Returns True when the user clicks the main CTA.
-    """
-    st.markdown(
-        """
-        <div class="landing-wrap">
-            <div class="landing-ring">C</div>
-            <div class="landing-title">CinéSearch</div>
-            <div class="landing-sub">
-                Plongez dans l'univers infini du cinéma.<br>
-                Recherche intelligente &amp; expérience immersive.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # ── Main CTA ──────────────────────────────────────────────────────────────
-    _, col_btn, _ = st.columns([2, 1.2, 2])
-    with col_btn:
-        if st.button("Explorer le catalogue", use_container_width=True, type="primary"):
-            return True
-
-    return False
-
-
 # ── Filters ────────────────────────────────────────────────────────────────────
 
 def render_filters(
@@ -598,10 +697,20 @@ def render_hero_section(details: Dict, current_idx: int, total_count: int,
 
     st.markdown(
         f"""
+        <div class="hero-mobile-brand">CinéSearch</div>
         <div class="hero-wrap">
             <div class="hero-bg-container">
                 <div class="hero-bg" style="background-image:url('{poster_url}');"></div>
                 <div class="hero-grad"></div>
+            </div>
+            <div class="hero-search-top">
+                <form class="hero-search-form" method="GET" action="">
+                    <div class="hero-search-wrap">
+                        <input class="hero-search-input" type="text" name="q"
+                               placeholder="Rechercher un film…" autocomplete="off">
+                        <button class="hero-search-btn" type="submit">&#8594;</button>
+                    </div>
+                </form>
             </div>
             <div class="hero-content">
                 <div class="hero-genre">{genre_label}</div>
@@ -619,57 +728,16 @@ def render_hero_section(details: Dict, current_idx: int, total_count: int,
 # ── Featured grid (À découvrir) ────────────────────────────────────────────────
 
 def render_featured_grid(movies: List[Dict], poster_urls: Dict[int, str]) -> None:
-    """Render the '12 À découvrir' section below the hero."""
+    """Render the 'À découvrir' section: up to 12 cards in 6 columns."""
     st.markdown(
         '<h3 style="color:#fff;font-size:1.25rem;font-weight:700;'
         'margin:1.75rem 0 1rem;letter-spacing:-0.01em;">À découvrir</h3>',
         unsafe_allow_html=True,
     )
-
     n_cols = 6
     cols = st.columns(n_cols, gap="small")
-
     for i, movie in enumerate(movies[:12]):
-        title  = str(movie.get("title", ""))
-        year   = int(movie.get("release_year", 0)) if movie.get("release_year") else 0
-        rating = float(movie.get("avg_rating") or 0)
-        votes  = int(movie.get("rating_count") or 0)
-
-        tmdb_id = None
-        try:
-            raw = movie.get("tmdbId")
-            if raw is not None and not pd.isna(raw):
-                tmdb_id = int(raw)
-        except (ValueError, TypeError):
-            pass
-
-        poster = poster_urls.get(tmdb_id) if tmdb_id else None
-        badge_info = _get_badge(rating, votes, year) if year else None
-        badge_html = ""
-        if badge_info:
-            label, color, bg, border = badge_info
-            badge_html = (
-                f'<span class="mc-badge" style="background:{bg};color:{color};'
-                f'border:1px solid {border};">{label}</span>'
-            )
-
-        with cols[i % n_cols]:
-            if poster:
-                inner = f'<img class="mc-poster" src="{poster}" alt="{title}">'
-            else:
-                gradient = _genre_gradient(str(movie.get("genres", "")))
-                inner = f'<div class="mc-poster-fallback" style="background:{gradient};"></div>'
-
-            link_open = f'<a class="mc-item-link" href="?detail={tmdb_id}&src=home" target="_self">' if tmdb_id else '<div class="mc-item-link">'
-            link_close = '</a>' if tmdb_id else '</div>'
-            st.markdown(
-                f'{link_open}'
-                f'<div class="mc-card">{badge_html}{inner}</div>'
-                f'{link_close}'
-                f'<div class="mc-title">{title}</div>'
-                f'<div class="mc-meta">★ {rating*2:.1f} · {year if year else "—"}</div>',
-                unsafe_allow_html=True,
-            )
+        _render_movie_card(cols[i % n_cols], movie, poster_urls)
 
 
 def render_section_divider() -> None:
@@ -680,61 +748,18 @@ def render_section_divider() -> None:
 # ── Trending row (top-rated recent films) ─────────────────────────────────────
 
 def render_trending_row(movies: List[Dict], poster_urls: Dict[int, str]) -> None:
-    """Render a single horizontal row of up to 6 top-rated recent films."""
+    """Render a horizontal row of up to 6 top-rated recent films."""
     st.markdown(
         '<h3 style="color:#fff;font-size:1.25rem;font-weight:700;'
         'margin:1.75rem 0 1rem;letter-spacing:-0.01em;">Tendances</h3>',
         unsafe_allow_html=True,
     )
-
     display = movies[:6]
     if not display:
         return
-
-    n_cols = len(display)
-    cols = st.columns(n_cols, gap="small")
-
+    cols = st.columns(len(display), gap="small")
     for i, movie in enumerate(display):
-        title  = str(movie.get("title", ""))
-        year   = int(movie.get("release_year", 0)) if movie.get("release_year") else 0
-        rating = float(movie.get("avg_rating") or 0)
-        votes  = int(movie.get("rating_count") or 0)
-
-        tmdb_id = None
-        try:
-            raw = movie.get("tmdbId")
-            if raw is not None and not pd.isna(raw):
-                tmdb_id = int(raw)
-        except (ValueError, TypeError):
-            pass
-
-        poster = poster_urls.get(tmdb_id) if tmdb_id else None
-        badge_info = _get_badge(rating, votes, year) if year else None
-        badge_html = ""
-        if badge_info:
-            label, color, bg, border = badge_info
-            badge_html = (
-                f'<span class="mc-badge" style="background:{bg};color:{color};'
-                f'border:1px solid {border};">{label}</span>'
-            )
-
-        with cols[i]:
-            if poster:
-                inner = f'<img class="mc-poster" src="{poster}" alt="{title}">'
-            else:
-                gradient = _genre_gradient(str(movie.get("genres", "")))
-                inner = f'<div class="mc-poster-fallback" style="background:{gradient};"></div>'
-
-            link_open = f'<a class="mc-item-link" href="?detail={tmdb_id}&src=home" target="_self">' if tmdb_id else '<div class="mc-item-link">'
-            link_close = '</a>' if tmdb_id else '</div>'
-            st.markdown(
-                f'{link_open}'
-                f'<div class="mc-card">{badge_html}{inner}</div>'
-                f'{link_close}'
-                f'<div class="mc-title">{title}</div>'
-                f'<div class="mc-meta">★ {rating*2:.1f} · {year if year else "—"}</div>',
-                unsafe_allow_html=True,
-            )
+        _render_movie_card(cols[i], movie, poster_urls)
 
 
 # ── Results grid ──────────────────────────────────────────────────────────────
@@ -744,58 +769,23 @@ def render_results_cards(
     poster_urls: Optional[Dict[int, str]] = None,
     return_q: str = "",
 ) -> None:
-    """
-    3-column poster cards with visual badges.
+    """4-column poster cards with visual badges.
+
     Clicking a card navigates to the full detail page via query params.
-    return_q is embedded in the URL so it survives the page reload.
+    return_q is embedded in the URL so the search query survives the page reload.
     """
     import urllib.parse
     q_encoded = urllib.parse.quote(return_q, safe="") if return_q else ""
-    n_cols = 4
+    n_cols = 3
     cols = st.columns(n_cols, gap="small")
-
     for i, (_, row) in enumerate(df.iterrows()):
-        title  = str(row.get("title", ""))
-        year   = int(row.get("release_year", 0)) if row.get("release_year") else 0
-        rating = float(row.get("avg_rating") or 0)
-        votes  = int(row.get("rating_count") or 0)
-
-        tmdb_id = None
-        try:
-            raw = row.get("tmdbId")
-            if raw is not None and not pd.isna(raw):
-                tmdb_id = int(raw)
-        except (ValueError, TypeError):
-            pass
-
-        poster     = (poster_urls or {}).get(tmdb_id) if tmdb_id else None
-        badge_info = _get_badge(rating, votes, year) if year else None
-        badge_html = ""
-        if badge_info:
-            label, color, bg, border = badge_info
-            badge_html = (
-                f'<span class="mc-badge" style="background:{bg};color:{color};'
-                f'border:1px solid {border};">{label}</span>'
-            )
-
-        with cols[i % n_cols]:
-            if poster:
-                inner = f'<img class="mc-poster" src="{poster}" alt="{title}">'
-            else:
-                gradient = _genre_gradient(str(row.get("genres", "")))
-                inner = f'<div class="mc-poster-fallback" style="background:{gradient};"></div>'
-
-            year_str = str(year) if year else "—"
-            link_open = f'<a class="mc-item-link" href="?detail={tmdb_id}&src=search&q={q_encoded}" target="_self">' if tmdb_id else '<div class="mc-item-link">'
-            link_close = '</a>' if tmdb_id else '</div>'
-            st.markdown(
-                f'{link_open}'
-                f'<div class="mc-card">{badge_html}{inner}</div>'
-                f'{link_close}'
-                f'<div class="mc-title">{title}</div>'
-                f'<div class="mc-meta">★ {rating*2:.1f} · {year_str}</div>',
-                unsafe_allow_html=True,
-            )
+        _render_movie_card(
+            cols[i % n_cols],
+            row.to_dict(),
+            poster_urls or {},
+            src="search",
+            q_encoded=q_encoded,
+        )
 
 
 # ── Empty state ────────────────────────────────────────────────────────────────
@@ -888,6 +878,17 @@ def render_movie_detail_full(details: Dict) -> None:
                 unsafe_allow_html=True,
             )
 
+        # Director
+        director_info: Dict = details.get("director", {})
+        director_name = director_info.get("name", "")
+        if director_name:
+            st.markdown(
+                f'<div style="margin-top:0.75rem;font-size:0.82rem;'
+                f'color:rgba(148,163,184,0.75);">Réalisé par '
+                f'<strong style="color:#fff;">{director_name}</strong></div>',
+                unsafe_allow_html=True,
+            )
+
         # Synopsis
         if overview:
             st.markdown(
@@ -896,28 +897,73 @@ def render_movie_detail_full(details: Dict) -> None:
                 unsafe_allow_html=True,
             )
 
-    # ── Box-office / info ─────────────────────────────────────────────────────
-    eco_items: List[Tuple[str, str]] = []
-    if budget and budget > 0:
-        eco_items.append(("BUDGET",  f"${budget:,.0f}"))
-    if revenue and revenue > 0:
-        eco_items.append(("REVENUS", f"${revenue:,.0f}"))
-    if orig_lang:
-        eco_items.append(("LANGUE",  orig_lang))
+        # ── Streaming providers (inline, just below synopsis) ─────────────────
+        providers: Dict = details.get("providers", {})
+        watch_link: str = providers.get("watch_link", "")
+        _CATEGORY_LABELS = {
+            "flatrate": "Streaming",
+            "free":     "Gratuit",
+            "ads":      "Avec pub",
+            "rent":     "Location",
+            "buy":      "Achat",
+        }
+        has_providers = any(k in providers for k in _CATEGORY_LABELS)
+        st.markdown('<div class="detail-section-label" style="margin-top:1rem;">Où regarder</div>', unsafe_allow_html=True)
+        if not has_providers:
+            st.markdown(
+                '<div style="color:rgba(148,163,184,0.55);font-size:0.82rem;margin-top:0.3rem;">—</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            providers_html = '<div class="providers-section">'
+            for cat_key in ("flatrate", "free", "ads", "rent", "buy"):
+                items = providers.get(cat_key, [])
+                if not items:
+                    continue
+                label = _CATEGORY_LABELS[cat_key]
+                providers_html += f'<div class="providers-category">{label}</div><div class="providers-row">'
+                for p in items:
+                    logo  = p.get("logo_url") or ""
+                    pname = p.get("provider_name") or ""
+                    if logo:
+                        if watch_link:
+                            providers_html += (
+                                f'<a href="{watch_link}" target="_blank" rel="noopener" '
+                                f'style="text-decoration:none;">'
+                                f'<div class="provider-item">'
+                                f'<img class="provider-logo" src="{logo}" alt="{pname}" title="{pname}">'
+                                f'<div class="provider-name">{pname}</div>'
+                                f'</div></a>'
+                            )
+                        else:
+                            providers_html += (
+                                f'<div class="provider-item">'
+                                f'<img class="provider-logo" src="{logo}" alt="{pname}" title="{pname}">'
+                                f'<div class="provider-name">{pname}</div>'
+                                f'</div>'
+                            )
+                providers_html += '</div>'
+            providers_html += '</div>'
+            st.markdown(providers_html, unsafe_allow_html=True)
 
-    if eco_items:
-        st.divider()
-        st.markdown('<div class="detail-section-label">Informations</div>', unsafe_allow_html=True)
-        eco_cols = st.columns(len(eco_items))
-        for idx, (label, value) in enumerate(eco_items):
-            with eco_cols[idx]:
-                st.markdown(
-                    f'<div class="eco-item">'
-                    f'<div class="eco-label">{label}</div>'
-                    f'<div class="eco-value">{value}</div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
+    # ── Box-office / info — always shown, "—" when data missing ──────────────
+    eco_items: List[Tuple[str, str]] = [
+        ("BUDGET",  f"${budget:,.0f}"  if budget  and budget  > 0 else "—"),
+        ("REVENUS", f"${revenue:,.0f}" if revenue and revenue > 0 else "—"),
+        ("LANGUE",  orig_lang          if orig_lang               else "—"),
+    ]
+    st.divider()
+    st.markdown('<div class="detail-section-label">Informations</div>', unsafe_allow_html=True)
+    eco_cols = st.columns(3)
+    for idx, (label, value) in enumerate(eco_items):
+        with eco_cols[idx]:
+            st.markdown(
+                f'<div class="eco-item">'
+                f'<div class="eco-label">{label}</div>'
+                f'<div class="eco-value">{value}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
     # ── Cast ──────────────────────────────────────────────────────────────────
     if cast:
@@ -935,3 +981,24 @@ def render_movie_detail_full(details: Dict) -> None:
                     f'{character}</span></div>',
                     unsafe_allow_html=True,
                 )
+
+    # ── Director filmography ───────────────────────────────────────────────────
+    other_films: List[Dict] = details.get("director_other_movies", [])
+    if other_films and director_name:
+        st.divider()
+        st.markdown(
+            f'<h3 style="color:#fff;font-size:1.15rem;font-weight:700;'
+            f'margin:0.5rem 0 1rem;letter-spacing:-0.01em;">'
+            f'Autres films de {director_name}</h3>',
+            unsafe_allow_html=True,
+        )
+        # Build poster_urls dict from the pre-fetched data
+        film_poster_urls: Dict[int, str] = {
+            f["tmdb_id"]: f["poster_url"]
+            for f in other_films
+            if f.get("poster_url") and f.get("tmdb_id")
+        }
+        n_cols = min(len(other_films), 6)
+        cols = st.columns(n_cols, gap="small")
+        for i, film in enumerate(other_films[:n_cols]):
+            _render_movie_card(cols[i], film, film_poster_urls, src="home")

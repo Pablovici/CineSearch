@@ -41,7 +41,7 @@ st.set_page_config(
     page_title="CinéSearch",
     page_icon="C",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
 # ── Hero TMDB IDs (carousel, shown when no active search) ─────────────────────
@@ -273,6 +273,22 @@ def _show_full_detail() -> None:
 def main() -> None:
     inject_css()
 
+    # ── Hero search form submission (?q=QUERY) ───────────────────────────────
+    # Guard: only handle if NOT a card-click (?detail=) or hero CTA (?hero_tmdb=)
+    hero_q = st.query_params.get("q")
+    if hero_q and not st.query_params.get("detail") and not st.query_params.get("hero_tmdb"):
+        try:
+            q_val = hero_q.strip()
+            st.query_params.clear()
+            if q_val:
+                st.session_state["_confirmed_q"]  = q_val
+                st.session_state["_last_raw_q"]   = q_val
+                st.session_state["search_input"]  = q_val
+                st.session_state["_visible_count"] = _PAGE_SIZE
+                st.rerun()
+        except Exception:
+            st.query_params.clear()
+
     # ── Card click via query param (?detail=ID&src=home|search&q=QUERY) ─────────
     detail_param = st.query_params.get("detail")
     if detail_param:
@@ -309,75 +325,98 @@ def main() -> None:
         _show_full_detail()
         return
 
+    # ── Is the user on the results page? (drives sidebar search bar + mobile open) ──
+    _on_results = bool(
+        st.session_state.get("_confirmed_q")
+        or st.session_state.get("_last_raw_q", "").strip()
+    )
+
     # ── Sidebar ───────────────────────────────────────────────────────────────
     with st.sidebar:
         render_sidebar_header()
 
-        # Search bar (in sidebar)
         # Handle navigation flags BEFORE the widget is instantiated
         if st.session_state.pop("_reset_search", False):
-            # Returning to home: clear the search bar
             st.session_state["search_input"] = ""
+            _on_results = False
         restore_q = st.session_state.pop("_restore_search", None)
         if restore_q is not None:
-            # Returning from detail to search results: restore query in bar + state
             st.session_state["search_input"]  = restore_q
             st.session_state["_confirmed_q"]  = restore_q
             st.session_state["_last_raw_q"]   = restore_q
-        raw_q: str = st.text_input(
-            "",
-            placeholder="Rechercher des films…",
-            key="search_input",
-            label_visibility="collapsed",
-        )
+            _on_results = True
 
-        # Reset confirmed query when typed query changes
-        if raw_q != st.session_state.get("_last_raw_q", ""):
-            st.session_state["_confirmed_q"]  = None
-            st.session_state["_last_raw_q"]   = raw_q
-            st.session_state["_visible_count"] = _PAGE_SIZE
+        if _on_results:
+            # ── Search bar — visible only on results page ─────────────────────
+            raw_q: str = st.text_input(
+                "",
+                placeholder="Rechercher des films…",
+                key="search_input",
+                label_visibility="collapsed",
+            )
 
-        # ── Autocomplete suggestions (while typing, no confirmed query yet) ───
-        if raw_q and len(raw_q.strip()) >= 1 and st.session_state.get("_confirmed_q") is None:
-            try:
-                suggestions = _autocomplete(raw_q.strip())
-                filtered = [
-                    s for s in suggestions
-                    if _year_ok(s, st.session_state.get("_filter_min_year", config.DEFAULT_MIN_YEAR))
-                ][:8]
-                if filtered:
-                    for i, s in enumerate(filtered):
-                        label = f"{s['title']}  ({s.get('release_year', '?')})"
-                        if st.button(label, key=f"sug_{i}", use_container_width=True, type="secondary"):
-                            st.session_state["_confirmed_q"]   = s["title"]
+            # Reset confirmed query when typed query changes
+            if raw_q != st.session_state.get("_last_raw_q", ""):
+                st.session_state["_confirmed_q"]  = None
+                st.session_state["_last_raw_q"]   = raw_q
+                st.session_state["_visible_count"] = _PAGE_SIZE
+
+            # ── Autocomplete suggestions (while typing) ───────────────────────
+            if raw_q and len(raw_q.strip()) >= 1 and st.session_state.get("_confirmed_q") is None:
+                try:
+                    suggestions = _autocomplete(raw_q.strip())
+                    filtered = [
+                        s for s in suggestions
+                        if _year_ok(s, st.session_state.get("_filter_min_year", config.DEFAULT_MIN_YEAR))
+                    ][:8]
+                    if filtered:
+                        for i, s in enumerate(filtered):
+                            label = f"{s['title']}  ({s.get('release_year', '?')})"
+                            if st.button(label, key=f"sug_{i}", use_container_width=True, type="secondary"):
+                                st.session_state["_confirmed_q"]   = s["title"]
+                                st.session_state["_visible_count"] = _PAGE_SIZE
+                                _add_to_history(s["title"])
+                                st.rerun()
+                except Exception:
+                    pass
+
+            # ── Search history (when bar is empty) ────────────────────────────
+            elif not raw_q:
+                history: List[str] = st.session_state.get("_search_history", [])
+                if history:
+                    st.markdown('<p class="history-label">Récentes</p>', unsafe_allow_html=True)
+                    for h_q in history[:5]:
+                        if st.button(f"↩  {h_q}", key=f"hist_{h_q}", use_container_width=True, type="secondary"):
+                            st.session_state["_confirmed_q"]   = h_q
                             st.session_state["_visible_count"] = _PAGE_SIZE
-                            _add_to_history(s["title"])
                             st.rerun()
-            except Exception:
-                pass
+        else:
+            # Home page: no search bar (user searches via hero box)
+            raw_q = ""
 
-        # ── Search history (shown when search bar is empty) ────────────────
-        elif not raw_q:
-            history: List[str] = st.session_state.get("_search_history", [])
-            if history:
-                st.markdown(
-                    '<p style="color:rgba(255,255,255,0.35);font-size:0.62rem;font-weight:700;'
-                    'letter-spacing:0.1em;text-transform:uppercase;margin:0.7rem 0 0.3rem;">Récentes</p>',
-                    unsafe_allow_html=True,
-                )
-                for h_q in history[:5]:
-                    if st.button(f"↩  {h_q}", key=f"hist_{h_q}", use_container_width=True, type="secondary"):
-                        st.session_state["_confirmed_q"]   = h_q
-                        st.session_state["_visible_count"] = _PAGE_SIZE
-                        st.rerun()
-
-        # ── Filters ───────────────────────────────────────────────────────────
+        # ── Filters (always visible) ──────────────────────────────────────────
         language, selected_genres, min_rating, year_range = render_filters(
             languages=config.LANGUAGES,
             genres=config.GENRES,
             default_min_rating=config.DEFAULT_MIN_RATING,
             default_min_year=config.DEFAULT_MIN_YEAR,
         )
+
+    # ── Mobile: auto-open sidebar on first entry to search results ────────────
+    import streamlit.components.v1 as components
+    if _on_results and not st.session_state.get("_mob_sidebar_opened"):
+        st.session_state["_mob_sidebar_opened"] = True
+        components.html(
+            """<script>
+            setTimeout(function(){
+                var btn = window.parent.document.querySelector('[data-testid="collapsedControl"]');
+                if (btn && window.parent.innerWidth < 900) btn.click();
+            }, 300);
+            </script>""",
+            height=0,
+        )
+    elif not _on_results:
+        st.session_state.pop("_mob_sidebar_opened", None)
 
     # Resolve API-compatible values
     genre    = selected_genres[0] if selected_genres else "All"
@@ -464,8 +503,7 @@ def main() -> None:
     n_total = len(rows)
     with col_count:
         st.markdown(
-            f'<p style="color:rgba(255,255,255,0.35);font-size:0.68rem;font-weight:700;'
-            f'letter-spacing:0.12em;text-transform:uppercase;margin:0.6rem 0 0;">'
+            f'<p class="section-count">'
             f'{n_total} FILM{"S" if n_total != 1 else ""} TROUVÉ{"S" if n_total != 1 else ""}</p>',
             unsafe_allow_html=True,
         )
@@ -514,8 +552,7 @@ def main() -> None:
                 st.rerun()
     else:
         st.markdown(
-            f'<p style="color:rgba(255,255,255,0.2);font-size:0.8rem;text-align:center;'
-            f'margin-top:1.5rem;">— {n_total} film{"s" if n_total != 1 else ""} affiché{"s" if n_total != 1 else ""} —</p>',
+            f'<p class="results-end">— {n_total} film{"s" if n_total != 1 else ""} affiché{"s" if n_total != 1 else ""} —</p>',
             unsafe_allow_html=True,
         )
 

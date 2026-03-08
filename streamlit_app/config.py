@@ -16,7 +16,7 @@ MOVIE_DETAILS_URL: str = os.getenv(
 )
 
 # ── Search behaviour ──────────────────────────────────────────────────────────
-SEARCH_LIMIT: int = 50
+SEARCH_LIMIT: int = 100
 AUTOCOMPLETE_LIMIT: int = 10
 MIN_QUERY_LENGTH: int = 2
 
