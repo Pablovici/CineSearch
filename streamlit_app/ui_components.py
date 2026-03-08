@@ -133,7 +133,7 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 
 /* ── Hero section ── */
 .hero-wrap { position:relative; width:100%; border-radius:18px; overflow:visible; margin-bottom:0.75rem; min-height:72vh; display:flex; align-items:flex-end; }
-/* Separate clip layer so blur/scale stay bounded but content can overflow */
+/* Separate clip layer: blur/scale stay bounded, content can overflow */
 .hero-bg-container { position:absolute; inset:0; border-radius:18px; overflow:hidden; }
 .hero-bg { position:absolute; inset:0; background-size:cover; background-position:center top; filter:blur(6px) brightness(0.48); transform:scale(1.05); }
 .hero-grad { position:absolute; inset:0; background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.55) 45%,rgba(0,0,0,0.10) 100%); }
@@ -143,12 +143,12 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 .hero-genre { display:inline-block; background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.75); border:1px solid rgba(255,255,255,0.18); border-radius:4px; padding:0.22rem 0.65rem; font-size:0.68rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.9rem; }
 .hero-title { font-size:3rem; font-weight:800; color:#fff; line-height:1.05; margin-bottom:0.9rem; letter-spacing:-0.03em; }
 .hero-overview { font-size:0.87rem; color:rgba(255,255,255,0.55); line-height:1.75; margin-bottom:0; max-width:460px; }
-/* CTA button — rendered inside .hero-content, just below overview text */
+/* CTA button */
 .hero-cta-btn { display:inline-block; background:transparent; border:1px solid rgba(255,255,255,0.6); color:#fff !important; padding:0.75rem 2.2rem; border-radius:30px; font-weight:600; font-size:0.9rem; cursor:pointer; margin-top:1.75rem; text-decoration:none !important; letter-spacing:0.02em; transition:background 0.2s,border-color 0.2s; }
 .hero-cta-btn:visited { color:#fff !important; text-decoration:none !important; }
 .hero-cta-btn:active { color:#fff !important; text-decoration:none !important; }
 .hero-cta-btn:hover { background:rgba(255,255,255,0.1); border-color:#fff; color:#fff !important; text-decoration:none !important; }
-/* Hero inline search form — positioned at top-center of the carousel */
+/* Hero inline search form — top-center of the carousel */
 .hero-search-top { position:absolute; top:2.2rem; left:50%; transform:translateX(-50%); z-index:4; width:min(55%,440px); }
 .hero-search-form { margin:0; }
 .hero-search-wrap { display:flex; align-items:center; background:rgba(10,10,10,0.55); border:1px solid rgba(255,255,255,0.22); border-radius:30px; padding:0.38rem 0.42rem 0.38rem 1.15rem; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,border-color 0.2s; }
@@ -294,7 +294,7 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 .results-end   { color:rgba(255,255,255,0.2);  font-size:0.8rem;  text-align:center; margin-top:1.5rem; }
 .history-label { color:rgba(255,255,255,0.35); font-size:0.62rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; margin:0.7rem 0 0.3rem; }
 
-/* ── Suppress layout artifact of height-0 components.html iframes (used for JS injection) ── */
+/* ── Suppress layout artifact of height-0 components.html iframes ── */
 [data-testid="stCustomComponentV1"] {
     display: none !important;
     height: 0 !important;
@@ -543,11 +543,7 @@ _LOADING_SCREEN = """
 
 
 def inject_css() -> None:
-    """
-    Injecte le CSS global.
-    Le loader plein écran n'est injecté qu'une seule fois par session (premier chargement).
-    Les re-runs Streamlit (changements de filtres, etc.) ne réaffichent pas le loader.
-    """
+    """Inject global CSS. The full-screen loader is only injected once per session."""
     if "_loader_shown" not in st.session_state:
         st.session_state["_loader_shown"] = True
         st.markdown(_CSS + _LOADING_SCREEN, unsafe_allow_html=True)
@@ -556,12 +552,7 @@ def inject_css() -> None:
 
 
 def hide_loader() -> None:
-    """
-    Cache le loader plein écran via JavaScript.
-    À appeler EN FIN de chaque chemin de rendu, une fois que tout le contenu est prêt.
-    Utilise st.components.v1.html (height=0) pour exécuter du JS dans Streamlit.
-    Le CSS [data-testid="stCustomComponentV1"] supprime tout artefact visuel.
-    """
+    """Dismiss the full-screen loading overlay. Call at the end of every render path."""
     import streamlit.components.v1 as components
     components.html(
         """<script>
@@ -576,7 +567,6 @@ def hide_loader() -> None:
                     el.style.pointerEvents = 'none';
                 }, 500);
             }
-            // Petit délai pour laisser React terminer son paint
             setTimeout(doHide, 200);
         })();
         </script>""",
@@ -626,7 +616,7 @@ def render_filters(
     reset = st.button("↺  Réinitialiser les filtres", key="_reset_filters",
                       use_container_width=True, type="secondary")
 
-    # Appliquer le reset AVANT la création des widgets (bouton sidebar ou flag externe)
+    # Apply reset BEFORE widgets are instantiated (from button click or external flag)
     if reset:
         st.session_state["_do_reset_filters"] = True
         st.rerun()
@@ -659,7 +649,7 @@ def render_filters(
         label_visibility="collapsed", key="_fl_year",
     )
 
-    # Min rating (displayed as 0–10; internally the API uses 0–5 so caller divides by 2)
+    # Min rating displayed as 0–10; the API uses 0–5 so the caller divides by 2
     _section_label("Note minimale (0–10)")
     min_rating: float = st.slider(
         "Min rating", min_value=0.0, max_value=10.0,
@@ -992,7 +982,6 @@ def render_movie_detail_full(details: Dict) -> None:
             f'Autres films de {director_name}</h3>',
             unsafe_allow_html=True,
         )
-        # Build poster_urls dict from the pre-fetched data
         film_poster_urls: Dict[int, str] = {
             f["tmdb_id"]: f["poster_url"]
             for f in other_films

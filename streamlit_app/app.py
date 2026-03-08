@@ -1,18 +1,16 @@
-"""app.py — Streamlit entry point.
+"""app.py — CinéSearch · Streamlit entry point.
 
-Thin orchestrator: reads config, wires cached API calls, and delegates
-all rendering to ui_components.
+Orchestrator: wires cached API calls and delegates all rendering to ui_components.
 
-Architecture (2 layers as per assignment):
-───────────────────────────────────────────
-  Layer 1 — Database  : BigQuery  (accessed via Cloud Functions)
-  Layer 2 — Logic+UI  : Streamlit (this file + api_client + ui_components)
+Architecture (2-layer as per assignment):
+  Layer 1 — Database  : BigQuery  (via Cloud Functions)
+  Layer 2 — Logic+UI  : Streamlit + Cloud Functions
 
-Layer 2 internal modules:
-  app.py              ← orchestration + Streamlit caching
-  ├── config.py       ← Cloud Function URLs + UI constants
-  ├── api_client.py   ← HTTP calls to Cloud Functions (pure Python, no Streamlit)
-  └── ui_components.py← Streamlit rendering helpers (no HTTP, no SQL)
+Internal modules:
+  app.py           ← orchestration, caching, navigation state
+  config.py        ← Cloud Function URLs, UI constants
+  api_client.py    ← HTTP layer (pure Python, no Streamlit)
+  ui_components.py ← rendering helpers (no HTTP, no SQL)
 """
 import random
 import time
@@ -20,6 +18,7 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 import config
 from api_client import fetch_autocomplete, fetch_details, fetch_search
@@ -44,13 +43,9 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
-# ── Hero TMDB IDs (carousel, shown when no active search) ─────────────────────
-_HERO_IDS = [27205, 155, 157336, 680, 278]  # Inception, Dark Knight, Interstellar, Pulp Fiction, Shawshank
-
-# ── Load-more page size ────────────────────────────────────────────────────────
-_PAGE_SIZE = config.RESULTS_PER_LOAD  # 9
-
-# ── Sort options ───────────────────────────────────────────────────────────────
+# TMDB IDs for the home page hero carousel (Inception, Dark Knight, Interstellar, Pulp Fiction, Shawshank)
+_HERO_IDS     = [27205, 155, 157336, 680, 278]
+_PAGE_SIZE    = config.RESULTS_PER_LOAD
 _SORT_OPTIONS = ["Pertinence", "Titre A→Z", "Titre Z→A", "Année ↓", "Année ↑", "Note ↓", "Note ↑"]
 
 
@@ -83,33 +78,28 @@ def _details(tmdb_id: int) -> Dict:
 
 @st.cache_data(ttl=3600)
 def _featured_movies_pool() -> List[Dict]:
-    """
-    Pool diversifié pour 'À découvrir'.
-    Stratégie : requête large avec seuil bas, puis filtre client pour :
-      - exclure les films avec trop peu d'avis (obscurs) ou trop (blockbusters omniprésents)
-      - exclure les notes parfaites (>= 4.5/5 = 9/10) pour éviter toujours les mêmes tops
-      - garder les films "bons mais pas parfaits" : 3.0–4.4 sur 5 (= 6.0–8.8/10)
+    """Diverse pool for the 'À découvrir' section.
+
+    Fetches a broad set of movies, then filters client-side to favour
+    well-known but not ubiquitous titles (rating_count 150–800) with a
+    good-but-not-perfect average (avg_rating 3.0–4.4 / 5).
+    Falls back to the unfiltered results if the pool is too small.
     """
     try:
         results = fetch_search(
             config.MOVIES_SEARCH_URL,
-            q="",           # chaîne vide → tous les films (LIKE '%%')
+            q="",
             language="All",
             genre="All",
-            min_rating=2.5,  # ≥ 5/10 — on écarte les films vraiment mauvais
+            min_rating=2.5,
             min_year=1960,
             limit=300,
         )
-        # Filtre diversité :
-        #   rating_count 150–800 : film suffisamment connu (évite les documentaires ultra-niche
-        #                          surreprésentés dans MovieLens mais inconnus sur TMDB)
-        #   avg_rating   3.0–4.4 : bon film, mais pas note parfaite (évite les 10/10 répétitifs)
         filtered = [
             r for r in results
             if 150 <= int(r.get("rating_count") or 0) <= 800
             and 3.0 <= float(r.get("avg_rating") or 0) <= 4.4
         ]
-        # Fallback si le filtre est trop restrictif
         return filtered if len(filtered) >= 20 else results
     except Exception:
         return []
@@ -117,7 +107,7 @@ def _featured_movies_pool() -> List[Dict]:
 
 @st.cache_data(ttl=3600)
 def _trending_movies_data() -> List[Dict]:
-    """Films de la dernière année du dataset, triés par nombre de votes décroissant."""
+    """Top-rated films from the two most recent years in the dataset."""
     try:
         results = fetch_search(
             config.MOVIES_SEARCH_URL,
@@ -131,19 +121,15 @@ def _trending_movies_data() -> List[Dict]:
         if not results:
             return []
 
-        # Détecter l'année la plus récente présente dans la base
         years = [int(r.get("release_year") or 0) for r in results if r.get("release_year")]
         if not years:
             return []
         max_year = max(years)
 
-        # Films des 2 dernières années disponibles dans la base
         recent = [
             r for r in results
             if int(r.get("release_year") or 0) >= max_year - 2
         ]
-
-        # Trier par nombre de votes décroissant
         recent = sorted(recent, key=lambda r: int(r.get("rating_count") or 0), reverse=True)
         return recent[:6]
     except Exception:
@@ -317,7 +303,6 @@ def main() -> None:
         except (ValueError, TypeError):
             st.query_params.clear()
 
-    # ── Landing page supprimée — on arrive directement sur l'app ─────────────
     st.session_state["app_started"] = True
 
     # ── Full-page detail view ──────────────────────────────────────────────────
@@ -402,8 +387,7 @@ def main() -> None:
             default_min_year=config.DEFAULT_MIN_YEAR,
         )
 
-    # ── Mobile: auto-open sidebar on first entry to search results ────────────
-    import streamlit.components.v1 as components
+    # ── Mobile: open sidebar once when entering results ───────────────────────
     if _on_results and not st.session_state.get("_mob_sidebar_opened"):
         st.session_state["_mob_sidebar_opened"] = True
         components.html(
