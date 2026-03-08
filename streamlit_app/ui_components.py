@@ -2,7 +2,7 @@
 
 Pure UI layer — no HTTP calls, no config imports.
 Design: CinéSearch — deep navy/black, glassmorphic cards, indigo accents,
-        auto-rotating hero, À découvrir section, visual badges,
+        auto-rotating hero, Discover section, visual badges,
         full-page structured detail view, load-more pagination.
 """
 from typing import Dict, List, Optional, Tuple
@@ -154,11 +154,11 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 .hero-search-btn:hover { background:rgba(255,255,255,0.30); }
 /* Streaming providers section */
 .providers-section { margin-top:1rem; }
-.providers-category { font-size:0.7rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(148,163,184,0.7); margin-bottom:0.5rem; }
-.providers-row { display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center; margin-bottom:0.85rem; }
-.provider-logo { width:40px; height:40px; border-radius:8px; object-fit:cover; }
-.provider-name { font-size:0.72rem; color:rgba(255,255,255,0.65); text-align:center; margin-top:0.2rem; }
-.provider-item { display:flex; flex-direction:column; align-items:center; width:44px; }
+.providers-category { font-size:0.7rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(148,163,184,0.7); margin-bottom:0.6rem; }
+.providers-row { display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-start; margin-bottom:1rem; }
+.provider-logo { width:45px; height:45px; border-radius:10px; object-fit:cover; display:block; }
+.provider-name { font-size:0.62rem; color:rgba(255,255,255,0.5); text-align:center; margin-top:0.25rem; line-height:1.2; max-width:45px; word-break:break-word; }
+.provider-item { display:flex; flex-direction:column; align-items:center; width:45px; }
 .hero-dots { position:absolute; bottom:1.5rem; left:50%; transform:translateX(-50%); display:flex; gap:0.5rem; z-index:3; }
 .hero-dot { height:3px; width:18px; border-radius:2px; background:rgba(255,255,255,0.3); transition:all 0.3s ease; }
 .hero-dot.active { background:#fff; width:28px; }
@@ -350,17 +350,17 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
         width: 105px !important;
     }
 
-    /* ── Grille résultats (3 colonnes) : wrapping centré ── */
-    [data-testid="stHorizontalBlock"]:has(.mc-card):not(:has([data-testid="stColumn"]:nth-child(4))) {
+    /* ── Grille résultats (4 colonnes) : 2 colonnes sur mobile ── */
+    [data-testid="stHorizontalBlock"]:has(.mc-card):not(:has([data-testid="stColumn"]:nth-child(5))) {
         flex-wrap: wrap !important;
         overflow-x: hidden !important;
         justify-content: center !important;
     }
-    [data-testid="stHorizontalBlock"]:has(.mc-card):not(:has([data-testid="stColumn"]:nth-child(4))) > [data-testid="stColumn"] {
-        min-width: 30% !important;
-        max-width: 32% !important;
-        flex: 0 0 30% !important;
-        width: 30% !important;
+    [data-testid="stHorizontalBlock"]:has(.mc-card):not(:has([data-testid="stColumn"]:nth-child(5))) > [data-testid="stColumn"] {
+        min-width: 47% !important;
+        max-width: 48% !important;
+        flex: 0 0 47% !important;
+        width: 47% !important;
     }
 
     /* ── Texte sous les cartes ── */
@@ -498,7 +498,7 @@ _LOADING_SCREEN = """
 <div id="cine-loader">
     <div class="cine-loader-logo">CinéSearch</div>
     <div class="cine-loader-bar"><div class="cine-loader-fill"></div></div>
-    <div class="cine-loader-sub">Chargement en cours…</div>
+    <div class="cine-loader-sub">Loading…</div>
 </div>
 <style>
 #cine-loader {
@@ -578,7 +578,7 @@ def render_sidebar_header() -> None:
             <div style="font-size:1.45rem;font-weight:700;color:#fff;
                         letter-spacing:-0.5px;line-height:1;margin:0;">CinéSearch</div>
             <div style="font-size:0.74rem;color:rgba(255,255,255,0.38);
-                        margin:0.35rem 0 0;line-height:1;">Découvrez des films</div>
+                        margin:0.35rem 0 0;line-height:1;">Discover movies</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -605,10 +605,10 @@ def render_filters(
     )
     st.markdown(
         '<p style="color:rgba(255,255,255,0.45);font-size:0.65rem;font-weight:700;'
-        'letter-spacing:0.1em;text-transform:uppercase;margin:0 0 0.6rem;">Filtres</p>',
+        'letter-spacing:0.1em;text-transform:uppercase;margin:0 0 0.6rem;">Filters</p>',
         unsafe_allow_html=True,
     )
-    reset = st.button("↺  Réinitialiser les filtres", key="_reset_filters",
+    reset = st.button("↺  Reset filters", key="_reset_filters",
                       use_container_width=True, type="secondary")
 
     # Apply reset BEFORE widgets are instantiated (from button click or external flag)
@@ -625,7 +625,7 @@ def render_filters(
                 st.session_state[f"_fl_genre_{g}"] = False
 
     # Language
-    _section_label("Langue")
+    _section_label("Language")
     language = st.selectbox("Language", languages, label_visibility="collapsed", key="_fl_lang")
 
     # Genres (checkboxes — "All" excluded, unchecked = All)
@@ -637,7 +637,7 @@ def render_filters(
             selected_genres.append(g)
 
     # Year range (MovieLens: 1902–2026)
-    _section_label("Année")
+    _section_label("Year")
     year_range: Tuple[int, int] = st.slider(
         "Year range", min_value=1900, max_value=2026,
         value=(default_min_year, 2026), step=1,
@@ -645,7 +645,7 @@ def render_filters(
     )
 
     # Min rating displayed as 0–10; the API uses 0–5 so the caller divides by 2
-    _section_label("Note minimale (0–10)")
+    _section_label("Min rating (0–10)")
     min_rating: float = st.slider(
         "Min rating", min_value=0.0, max_value=10.0,
         value=default_min_rating, step=0.5,
@@ -692,7 +692,7 @@ def render_hero_section(details: Dict, current_idx: int, total_count: int,
                 <form class="hero-search-form" method="GET" action="">
                     <div class="hero-search-wrap">
                         <input class="hero-search-input" type="text" name="q"
-                               placeholder="Rechercher un film…" autocomplete="off">
+                               placeholder="Search a movie…" autocomplete="off">
                         <button class="hero-search-btn" type="submit">&#8594;</button>
                     </div>
                 </form>
@@ -710,13 +710,13 @@ def render_hero_section(details: Dict, current_idx: int, total_count: int,
     )
 
 
-# ── Featured grid (À découvrir) ────────────────────────────────────────────────
+# ── Featured grid (Discover) ────────────────────────────────────────────────
 
 def render_featured_grid(movies: List[Dict], poster_urls: Dict[int, str]) -> None:
-    """Render the 'À découvrir' section: up to 12 cards in 6 columns."""
+    """Render the 'Discover' section: up to 12 cards in 6 columns."""
     st.markdown(
         '<h3 style="color:#fff;font-size:1.25rem;font-weight:700;'
-        'margin:1.75rem 0 1rem;letter-spacing:-0.01em;">À découvrir</h3>',
+        'margin:1.75rem 0 1rem;letter-spacing:-0.01em;">Discover</h3>',
         unsafe_allow_html=True,
     )
     n_cols = 6
@@ -736,7 +736,7 @@ def render_trending_row(movies: List[Dict], poster_urls: Dict[int, str]) -> None
     """Render a horizontal row of up to 6 top-rated recent films."""
     st.markdown(
         '<h3 style="color:#fff;font-size:1.25rem;font-weight:700;'
-        'margin:1.75rem 0 1rem;letter-spacing:-0.01em;">Tendances</h3>',
+        'margin:1.75rem 0 1rem;letter-spacing:-0.01em;">Trending</h3>',
         unsafe_allow_html=True,
     )
     display = movies[:6]
@@ -761,7 +761,7 @@ def render_results_cards(
     """
     import urllib.parse
     q_encoded = urllib.parse.quote(return_q, safe="") if return_q else ""
-    n_cols = 3
+    n_cols = 4
     cols = st.columns(n_cols, gap="small")
     for i, (_, row) in enumerate(df.iterrows()):
         _render_movie_card(
@@ -778,7 +778,7 @@ def render_results_cards(
 def render_empty_state(q: str, has_active_filters: bool) -> bool:
     """
     Friendly no-results message.
-    Returns True if the user clicks 'Réinitialiser les filtres'.
+    Returns True if the user clicks 'Reset filters'.
     """
     st.markdown(
         f"""
@@ -786,11 +786,11 @@ def render_empty_state(q: str, has_active_filters: bool) -> bool:
             <div style="font-size:3rem;margin-bottom:1rem;color:rgba(255,255,255,0.2);">—</div>
             <div style="font-size:1.05rem;font-weight:600;color:rgba(255,255,255,0.75);
                         margin-bottom:0.5rem;">
-                Aucun film trouvé pour <em>"{q}"</em>
+                No movies found for <em>"{q}"</em>
             </div>
             <div style="font-size:0.85rem;color:rgba(255,255,255,0.35);
                         max-width:380px;margin:0 auto 1.5rem;line-height:1.6;">
-                {"Essayez d'élargir vos filtres (note, année, genre) ou d'utiliser d'autres mots-clés." if has_active_filters else "Essayez un terme plus général ou vérifiez l'orthographe."}
+                {"Try broadening your filters (rating, year, genre) or using different keywords." if has_active_filters else "Try a more general term or check the spelling."}
             </div>
         </div>
         """,
@@ -799,7 +799,7 @@ def render_empty_state(q: str, has_active_filters: bool) -> bool:
     if has_active_filters:
         _, col_btn, _ = st.columns([2, 1.5, 2])
         with col_btn:
-            return st.button("↺  Réinitialiser les filtres", use_container_width=True, type="secondary")
+            return st.button("↺  Reset filters", use_container_width=True, type="secondary")
     return False
 
 
@@ -808,7 +808,7 @@ def render_empty_state(q: str, has_active_filters: bool) -> bool:
 def render_movie_detail_full(details: Dict) -> None:
     """Full structured detail page: cinematic header + poster + info + box-office + cast."""
     poster_url   = details.get("poster_url", "")
-    title        = details.get("title", "Film inconnu")
+    title        = details.get("title", "Unknown movie")
     tagline      = details.get("tagline", "")
     overview     = details.get("overview", "")
     release_date = details.get("release_date", "")
@@ -869,7 +869,7 @@ def render_movie_detail_full(details: Dict) -> None:
         if director_name:
             st.markdown(
                 f'<div style="margin-top:0.75rem;font-size:0.82rem;'
-                f'color:rgba(148,163,184,0.75);">Réalisé par '
+                f'color:rgba(148,163,184,0.75);">Directed by '
                 f'<strong style="color:#fff;">{director_name}</strong></div>',
                 unsafe_allow_html=True,
             )
@@ -887,13 +887,13 @@ def render_movie_detail_full(details: Dict) -> None:
         watch_link: str = providers.get("watch_link", "")
         _CATEGORY_LABELS = {
             "flatrate": "Streaming",
-            "free":     "Gratuit",
-            "ads":      "Avec pub",
-            "rent":     "Location",
-            "buy":      "Achat",
+            "free":     "Free",
+            "ads":      "With ads",
+            "rent":     "Rent",
+            "buy":      "Buy",
         }
         has_providers = any(k in providers for k in _CATEGORY_LABELS)
-        st.markdown('<div class="detail-section-label" style="margin-top:1rem;">Où regarder</div>', unsafe_allow_html=True)
+        st.markdown('<div class="detail-section-label" style="margin-top:1rem;">Where to watch</div>', unsafe_allow_html=True)
         if not has_providers:
             st.markdown(
                 '<div style="color:rgba(148,163,184,0.55);font-size:0.82rem;margin-top:0.3rem;">—</div>',
@@ -915,17 +915,12 @@ def render_movie_detail_full(details: Dict) -> None:
                             providers_html += (
                                 f'<a href="{watch_link}" target="_blank" rel="noopener" '
                                 f'style="text-decoration:none;">'
-                                f'<div class="provider-item">'
                                 f'<img class="provider-logo" src="{logo}" alt="{pname}" title="{pname}">'
-                                f'<div class="provider-name">{pname}</div>'
-                                f'</div></a>'
+                                f'</a>'
                             )
                         else:
                             providers_html += (
-                                f'<div class="provider-item">'
                                 f'<img class="provider-logo" src="{logo}" alt="{pname}" title="{pname}">'
-                                f'<div class="provider-name">{pname}</div>'
-                                f'</div>'
                             )
                 providers_html += '</div>'
             providers_html += '</div>'
@@ -933,12 +928,12 @@ def render_movie_detail_full(details: Dict) -> None:
 
     # ── Box-office / info — always shown, "—" when data missing ──────────────
     eco_items: List[Tuple[str, str]] = [
-        ("BUDGET",  f"${budget:,.0f}"  if budget  and budget  > 0 else "—"),
-        ("REVENUS", f"${revenue:,.0f}" if revenue and revenue > 0 else "—"),
-        ("LANGUE",  orig_lang          if orig_lang               else "—"),
+        ("BUDGET",   f"${budget:,.0f}"  if budget  and budget  > 0 else "—"),
+        ("REVENUE",  f"${revenue:,.0f}" if revenue and revenue > 0 else "—"),
+        ("LANGUAGE", orig_lang          if orig_lang               else "—"),
     ]
     st.divider()
-    st.markdown('<div class="detail-section-label">Informations</div>', unsafe_allow_html=True)
+    st.markdown('<div class="detail-section-label">Information</div>', unsafe_allow_html=True)
     eco_cols = st.columns(3)
     for idx, (label, value) in enumerate(eco_items):
         with eco_cols[idx]:
@@ -953,7 +948,7 @@ def render_movie_detail_full(details: Dict) -> None:
     # ── Cast ──────────────────────────────────────────────────────────────────
     if cast:
         st.divider()
-        st.markdown('<div class="detail-section-label">Distribution</div>', unsafe_allow_html=True)
+        st.markdown('<div class="detail-section-label">Cast</div>', unsafe_allow_html=True)
         cast_cols = st.columns(3)
         for i, member in enumerate(cast[:12]):
             name      = member.get("name", "")
@@ -974,7 +969,7 @@ def render_movie_detail_full(details: Dict) -> None:
         st.markdown(
             f'<h3 style="color:#fff;font-size:1.15rem;font-weight:700;'
             f'margin:0.5rem 0 1rem;letter-spacing:-0.01em;">'
-            f'Autres films de {director_name}</h3>',
+            f'More films by {director_name}</h3>',
             unsafe_allow_html=True,
         )
         film_poster_urls: Dict[int, str] = {

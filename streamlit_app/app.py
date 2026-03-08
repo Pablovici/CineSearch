@@ -46,7 +46,7 @@ st.set_page_config(
 # TMDB IDs for the home page hero carousel (Inception, Dark Knight, Interstellar, Pulp Fiction, Shawshank)
 _HERO_IDS     = [27205, 155, 157336, 680, 278]
 _PAGE_SIZE    = config.RESULTS_PER_LOAD
-_SORT_OPTIONS = ["Pertinence", "Titre A→Z", "Titre Z→A", "Année ↓", "Année ↑", "Note ↓", "Note ↑"]
+_SORT_OPTIONS = ["Relevance", "Title A→Z", "Title Z→A", "Year ↓", "Year ↑", "Rating ↓", "Rating ↑"]
 
 
 # ── Cached API wrappers ───────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ def _details(tmdb_id: int) -> Dict:
 
 @st.cache_data(ttl=3600)
 def _featured_movies_pool() -> List[Dict]:
-    """Diverse pool for the 'À découvrir' section.
+    """Diverse pool for the 'Discover' section.
 
     Fetches a broad set of movies, then filters client-side to favour
     well-known but not ubiquitous titles (rating_count 150–800) with a
@@ -155,19 +155,19 @@ def _year_ok_max(row: dict, max_year: int) -> bool:
 
 def _sort_rows(rows: list, sort_by: str) -> list:
     """Sort results list based on selected option."""
-    if sort_by == "Titre A→Z":
+    if sort_by == "Title A→Z":
         return sorted(rows, key=lambda r: r.get("title", "").lower())
-    if sort_by == "Titre Z→A":
+    if sort_by == "Title Z→A":
         return sorted(rows, key=lambda r: r.get("title", "").lower(), reverse=True)
-    if sort_by == "Année ↓":
+    if sort_by == "Year ↓":
         return sorted(rows, key=lambda r: r.get("release_year", 0), reverse=True)
-    if sort_by == "Année ↑":
+    if sort_by == "Year ↑":
         return sorted(rows, key=lambda r: r.get("release_year", 9999))
-    if sort_by == "Note ↓":
+    if sort_by == "Rating ↓":
         return sorted(rows, key=lambda r: float(r.get("avg_rating") or 0), reverse=True)
-    if sort_by == "Note ↑":
+    if sort_by == "Rating ↑":
         return sorted(rows, key=lambda r: float(r.get("avg_rating") or 0))
-    return rows  # "Pertinence" — keep API order
+    return rows  # "Relevance" — keep API order
 
 
 def _add_to_history(q: str) -> None:
@@ -223,7 +223,7 @@ def _show_full_detail() -> None:
     # _detail_return_q is set ONLY when coming from search results.
     # Its presence (even if empty string) means "go back to search".
     came_from_search = "_detail_return_q" in st.session_state
-    back_label = "← Résultats" if came_from_search else "← Accueil"
+    back_label = "← Results" if came_from_search else "← Home"
 
     if st.button(back_label, key="_back_btn", type="secondary"):
         del st.session_state["detail_tmdb_id"]
@@ -233,7 +233,7 @@ def _show_full_detail() -> None:
             st.session_state["_restore_search"] = return_q
         else:
             st.session_state.pop("_detail_return_q", None)
-            # Coming from home: wipe search state + refresh À découvrir selection
+            # Coming from home: wipe search state + refresh Discover selection
             st.session_state["_confirmed_q"]  = None
             st.session_state["_last_raw_q"]   = ""
             st.session_state["_reset_search"] = True
@@ -241,11 +241,11 @@ def _show_full_detail() -> None:
         st.rerun()
 
     tmdb_id = st.session_state["detail_tmdb_id"]
-    with st.spinner("Chargement des détails…"):
+    with st.spinner("Loading details…"):
         try:
             details = _details(tmdb_id)
         except Exception as exc:
-            st.error(f"Impossible de charger les détails : {exc}")
+            st.error(f"Failed to load details: {exc}")
             return
 
     render_movie_detail_full(details)
@@ -333,7 +333,7 @@ def main() -> None:
             # ── Search bar — visible only on results page ─────────────────────
             raw_q: str = st.text_input(
                 "",
-                placeholder="Rechercher des films…",
+                placeholder="Search movies…",
                 key="search_input",
                 label_visibility="collapsed",
             )
@@ -367,7 +367,7 @@ def main() -> None:
             elif not raw_q:
                 history: List[str] = st.session_state.get("_search_history", [])
                 if history:
-                    st.markdown('<p class="history-label">Récentes</p>', unsafe_allow_html=True)
+                    st.markdown('<p class="history-label">Recent</p>', unsafe_allow_html=True)
                     for h_q in history[:5]:
                         if st.button(f"↩  {h_q}", key=f"hist_{h_q}", use_container_width=True, type="secondary"):
                             st.session_state["_confirmed_q"]   = h_q
@@ -408,26 +408,26 @@ def main() -> None:
     # Final effective query
     q = st.session_state.get("_confirmed_q") or raw_q.strip()
 
-    # ── No search query → hero carousel + Tendances + À découvrir ────────────
+    # ── No search query → hero carousel + Trending + Discover ────────────
     if not q or len(q) < config.MIN_QUERY_LENGTH:
         _hero_carousel_fragment()
 
-        # Tendances section
+        # Trending section
         trending = _trending_movies_data()
         if trending:
             render_section_divider()
-            with st.spinner("Chargement des tendances…"):
+            with st.spinner("Loading trending movies…"):
                 trend_posters = _prefetch_poster_urls(trending)
             render_trending_row(trending, trend_posters)
 
-        # À découvrir section — stable random selection (unchanged when filters move)
+        # Discover section — stable random selection (unchanged when filters move)
         pool = _featured_movies_pool()
         if "_featured_selection" not in st.session_state and pool:
             st.session_state["_featured_selection"] = random.sample(pool, min(12, len(pool)))
         featured = st.session_state.get("_featured_selection", [])
         if featured:
             render_section_divider()
-            with st.spinner("Chargement des affiches…"):
+            with st.spinner("Loading posters…"):
                 feat_posters = _prefetch_poster_urls(featured)
             render_featured_grid(featured, feat_posters)
         hide_loader()
@@ -444,7 +444,7 @@ def main() -> None:
             min_year=min_year,
         )
     except Exception as exc:
-        st.error(f"Recherche échouée : {exc}")
+        st.error(f"Search failed: {exc}")
         return
 
     # Client-side max_year filter
@@ -472,19 +472,19 @@ def main() -> None:
         return
 
     # ── Back to home button ───────────────────────────────────────────────────
-    if st.button("← Accueil", key="btn_back_home", type="secondary"):
+    if st.button("← Home", key="btn_back_home", type="secondary"):
         st.session_state["_confirmed_q"]   = None
         st.session_state["_last_raw_q"]    = ""
         st.session_state["_visible_count"] = _PAGE_SIZE
         st.session_state["_reset_search"]  = True
-        st.session_state.pop("_featured_selection", None)  # refresh À découvrir on return
+        st.session_state.pop("_featured_selection", None)  # refresh Discover on return
         st.rerun()
 
     # ── Sort + results count row ───────────────────────────────────────────────
     col_count, col_sort = st.columns([4, 2])
     n_total = len(rows)
     capped  = n_total >= config.SEARCH_LIMIT
-    label   = f"{n_total}+ FILMS TROUVÉS" if capped else f'{n_total} FILM{"S" if n_total != 1 else ""} TROUVÉ{"S" if n_total != 1 else ""}'
+    label   = f"{n_total}+ MOVIES FOUND" if capped else f'{n_total} MOVIE{"S" if n_total != 1 else ""} FOUND'
     with col_count:
         st.markdown(
             f'<p class="section-count">{label}</p>',
@@ -512,7 +512,7 @@ def main() -> None:
     visible_rows  = rows[:visible_count]
 
     # ── Prefetch poster URLs for visible slice ─────────────────────────────────
-    with st.spinner("Chargement des affiches…"):
+    with st.spinner("Loading posters…"):
         poster_urls = _prefetch_poster_urls(visible_rows)
 
     # ── Results grid ──────────────────────────────────────────────────────────
@@ -526,7 +526,7 @@ def main() -> None:
         _, col_btn, _ = st.columns([2, 2, 2])
         with col_btn:
             if st.button(
-                f"Charger plus  ({remaining} restant{'s' if remaining > 1 else ''})",
+                f"Load more  ({remaining} remaining)",
                 key="_load_more",
                 use_container_width=True,
                 type="secondary",
@@ -535,7 +535,7 @@ def main() -> None:
                 st.rerun()
     else:
         st.markdown(
-            f'<p class="results-end">— {n_total} film{"s" if n_total != 1 else ""} affiché{"s" if n_total != 1 else ""} —</p>',
+            f'<p class="results-end">— {n_total} movie{"s" if n_total != 1 else ""} displayed —</p>',
             unsafe_allow_html=True,
         )
 
