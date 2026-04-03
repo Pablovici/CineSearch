@@ -1,0 +1,2 @@
+# Local Flask API for CinéSearch (Assignment 2 — stub only for now)
+flask>=3.0,<4

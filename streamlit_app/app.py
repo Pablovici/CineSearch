@@ -21,8 +21,9 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import config
-from api_client import fetch_autocomplete, fetch_details, fetch_search
+from api_client import fetch_autocomplete, fetch_details, fetch_search, post_recommend
 from ui_components import (
+    _normalize_title,
     hide_loader,
     inject_css,
     render_empty_state,
@@ -354,7 +355,7 @@ def main() -> None:
                     ][:8]
                     if filtered:
                         for i, s in enumerate(filtered):
-                            label = f"{s['title']}  ({s.get('release_year', '?')})"
+                            label = f"{_normalize_title(s['title'])}  ({s.get('release_year', '?')})"
                             if st.button(label, key=f"sug_{i}", use_container_width=True, type="secondary"):
                                 st.session_state["_confirmed_q"]   = s["title"]
                                 st.session_state["_visible_count"] = _PAGE_SIZE
@@ -378,12 +379,34 @@ def main() -> None:
             raw_q = ""
 
         # ── Filters (always visible) ──────────────────────────────────────────
-        language, selected_genres, min_rating, year_range = render_filters(
-            languages=config.LANGUAGES,
+        _lang_display_names = [config.LANGUAGE_NAMES[lang] for lang in config.LANGUAGES]
+        language_display, selected_genres, min_rating, year_range = render_filters(
+            languages=_lang_display_names,
             genres=config.GENRES,
             default_min_rating=config.DEFAULT_MIN_RATING,
             default_min_year=config.DEFAULT_MIN_YEAR,
         )
+        # Convert display name back to ISO code for the API
+        _lang_name_to_code = {v: k for k, v in config.LANGUAGE_NAMES.items()}
+        language = _lang_name_to_code.get(language_display, language_display)
+
+        # Local Flask backend smoke test (Assignment 2 — no impact on search/detail flows)
+        with st.expander("Backend API (dev)", expanded=False):
+            if st.button("POST /recommend (test)", key="_btn_backend_recommend"):
+                try:
+                    st.session_state.pop("_last_recommend_error", None)
+                    st.session_state["_last_recommend_json"] = post_recommend(
+                        config.BACKEND_URL,
+                        {"selected_movies": ["Inception", "Titanic"]},
+                    )
+                except Exception as exc:
+                    st.session_state.pop("_last_recommend_json", None)
+                    st.session_state["_last_recommend_error"] = str(exc)
+            err = st.session_state.get("_last_recommend_error")
+            if err:
+                st.error(err)
+            if "_last_recommend_json" in st.session_state:
+                st.json(st.session_state["_last_recommend_json"])
 
     # ── Mobile: open sidebar once when entering results ───────────────────────
     if _on_results and not st.session_state.get("_mob_sidebar_opened"):

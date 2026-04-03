@@ -15,6 +15,9 @@ MOVIE_DETAILS_URL: str = os.getenv(
     "https://movie-details-120497552025.europe-west6.run.app",
 )
 
+# Local Flask backend (Assignment 2 — recommendations API; stub for now)
+BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8080")
+
 # ── Search behaviour ──────────────────────────────────────────────────────────
 SEARCH_LIMIT: int = 50
 AUTOCOMPLETE_LIMIT: int = 10
@@ -22,6 +25,19 @@ MIN_QUERY_LENGTH: int = 2
 
 # ── Filter options shown in the UI ────────────────────────────────────────────
 LANGUAGES = ["All", "en", "fr", "de", "it", "es", "hi", "ja", "ko", "zh"]
+
+LANGUAGE_NAMES = {
+    "All": "All",
+    "en": "English",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "es": "Spanish",
+    "hi": "Hindi",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese",
+}
 
 GENRES = [
     "All",

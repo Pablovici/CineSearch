@@ -32,6 +32,30 @@ def _get(url: str, params: Optional[Dict] = None) -> Dict:
         raise RuntimeError(f"Non-JSON response from {url} — {snippet}")
 
 
+def _post_json(url: str, json_body: Optional[Dict] = None) -> Dict:
+    """POST *url* with JSON body and return parsed JSON."""
+    resp = requests.post(url, json=json_body if json_body is not None else {}, timeout=_TIMEOUT)
+    content_type = resp.headers.get("content-type", "")
+
+    if resp.status_code >= 400:
+        snippet = resp.text[:300].replace("\n", " ")
+        raise RuntimeError(
+            f"HTTP {resp.status_code} from {url} — {snippet}"
+        )
+
+    try:
+        return resp.json()
+    except ValueError:
+        snippet = resp.text[:300].replace("\n", " ")
+        raise RuntimeError(f"Non-JSON response from {url} — {snippet}")
+
+
+def post_recommend(base_url: str, body: Optional[Dict] = None) -> Dict:
+    """POST /recommend on the local Flask API. *body* must include non-empty selected_movies."""
+    url = f"{base_url.rstrip('/')}/recommend"
+    return _post_json(url, body)
+
+
 def fetch_autocomplete(url: str, prefix: str, limit: int = 10) -> List[Dict]:
     """Return title suggestions matching *prefix* (SQL LIKE autocomplete)."""
     data = _get(url, params={"q": prefix, "limit": limit})

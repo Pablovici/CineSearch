@@ -5,10 +5,31 @@ Design: CinéSearch — deep navy/black, glassmorphic cards, indigo accents,
         auto-rotating hero, Discover section, visual badges,
         full-page structured detail view, load-more pagination.
 """
+import re
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import streamlit as st
+
+
+# ── Title normalisation ───────────────────────────────────────────────────────
+# MovieLens stores titles with articles moved to the end, e.g. "Animatrix, The".
+# This regex moves them back to the front for display.
+_ARTICLE_SUFFIX_RE = re.compile(
+    r"^(.*),\s+(The|A|An|Les|Le|La|L'|Die|Der|Das|El|Los|Las|Un|Une)\s*$",
+    re.IGNORECASE,
+)
+
+
+def _normalize_title(title: str) -> str:
+    """Convert 'Title, Article' → 'Article Title' for display."""
+    m = _ARTICLE_SUFFIX_RE.match(title)
+    if not m:
+        return title
+    article, rest = m.group(2), m.group(1)
+    if article.endswith("'"):
+        return f"{article}{rest}"
+    return f"{article} {rest}"
 
 
 # ── Genre gradients (poster fallback) ─────────────────────────────────────────
@@ -441,7 +462,7 @@ def _render_movie_card(
         src:         Navigation source tag embedded in the detail URL ('home' or 'search').
         q_encoded:   URL-encoded search query to restore on back-navigation (search only).
     """
-    title  = str(movie.get("title", ""))
+    title  = _normalize_title(str(movie.get("title", "")))
     year   = int(movie.get("release_year", 0)) if movie.get("release_year") else 0
     rating = float(movie.get("avg_rating") or 0)
     votes  = int(movie.get("rating_count") or 0)
