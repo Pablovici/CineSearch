@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5001:8080"
+    env_file:
+      - backend/.env
+    volumes:
+      - "$HOME/.config/gcloud:/root/.config/gcloud:ro"
+    networks:
+      - cinesearch
+
+  frontend:
+    build:
+      context: ./streamlit_app
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8080"
+    environment:
+      - BACKEND_URL=http://backend:8080
+    volumes:
+      - "$HOME/.config/gcloud:/root/.config/gcloud:ro"
+    depends_on:
+      - backend
+    networks:
+      - cinesearch
+
+networks:
+  cinesearch:
+    driver: bridge

@@ -85,6 +85,13 @@ def fetch_search(
     return data.get("rows", [])
 
 
+def fetch_all_titles(base_url: str, limit: int = 30_000) -> List[Dict]:
+    """Return all movie titles from Flask /movies/titles for multiselect pre-loading."""
+    url = f"{base_url.rstrip('/')}/movies/titles"
+    data = _get(url, params={"limit": limit})
+    return data.get("movies", [])
+
+
 def fetch_details(url: str, tmdb_id: int) -> Dict:
     """Fetch enriched movie details (poster, overview, cast) from TMDB Cloud Function."""
     return _get(url, params={"tmdb_id": tmdb_id})

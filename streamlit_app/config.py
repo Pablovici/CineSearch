@@ -16,7 +16,7 @@ MOVIE_DETAILS_URL: str = os.getenv(
 )
 
 # Local Flask backend (Assignment 2 — recommendations API; stub for now)
-BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8080")
+BACKEND_URL: str = os.getenv("BACKEND_URL", "https://cinesearch-backend-120497552025.europe-west6.run.app")
 
 # ── Search behaviour ──────────────────────────────────────────────────────────
 SEARCH_LIMIT: int = 50

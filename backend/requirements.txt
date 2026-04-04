@@ -1,2 +1,5 @@
-# Local Flask API for CinéSearch (Assignment 2 — stub only for now)
+# Flask API for CinéSearch (Assignment 2)
 flask>=3.0,<4
+gunicorn>=21.0,<22
+google-cloud-bigquery>=3.0,<4
+elasticsearch>=8.0,<9

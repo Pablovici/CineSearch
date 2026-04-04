@@ -462,10 +462,11 @@ def _render_movie_card(
         src:         Navigation source tag embedded in the detail URL ('home' or 'search').
         q_encoded:   URL-encoded search query to restore on back-navigation (search only).
     """
-    title  = _normalize_title(str(movie.get("title", "")))
-    year   = int(movie.get("release_year", 0)) if movie.get("release_year") else 0
-    rating = float(movie.get("avg_rating") or 0)
-    votes  = int(movie.get("rating_count") or 0)
+    title     = _normalize_title(str(movie.get("title", "")))
+    year      = int(movie.get("release_year", 0)) if movie.get("release_year") else 0
+    raw_rating = movie.get("avg_rating")
+    rating     = float(raw_rating) if raw_rating else 0
+    votes     = int(movie.get("rating_count") or 0)
 
     tmdb_id: Optional[int] = None
     try:
@@ -495,7 +496,9 @@ def _render_movie_card(
 
     # ── Clickable link wrapping the card ──────────────────────────────────────
     if tmdb_id:
-        href = f"?detail={tmdb_id}&src={src}&q={q_encoded}"
+        movie_id_val = movie.get("movieId")
+        mid_param = f"&mid={int(movie_id_val)}" if movie_id_val is not None else ""
+        href = f"?detail={tmdb_id}&src={src}&q={q_encoded}{mid_param}"
         link_open  = f'<a class="mc-item-link" href="{href}" target="_self">'
         link_close = "</a>"
     else:
@@ -508,7 +511,7 @@ def _render_movie_card(
             f'<div class="mc-card">{badge_html}{inner_html}</div>'
             f"{link_close}"
             f'<div class="mc-title">{title}</div>'
-            f'<div class="mc-meta">★ {rating * 2:.1f} · {year if year else "—"}</div>',
+            f'<div class="mc-meta">{"★ " + f"{rating * 2:.1f}" if rating > 0 else "—"} · {year if year else "—"}</div>',
             unsafe_allow_html=True,
         )
 
@@ -641,36 +644,39 @@ def render_filters(
         st.session_state["_fl_lang"]   = languages[0] if languages else "All"
         st.session_state["_fl_year"]   = (default_min_year, 2026)
         st.session_state["_fl_rating"] = 0.0
-        for g in genres:
-            if g != "All":
-                st.session_state[f"_fl_genre_{g}"] = False
+        st.session_state["_fl_genres"] = []
 
     # Language
     _section_label("Language")
     language = st.selectbox("Language", languages, label_visibility="collapsed", key="_fl_lang")
 
-    # Genres (checkboxes — "All" excluded, unchecked = All)
+    # Genres (multiselect dropdown)
     _section_label("Genres")
     genre_options = [g for g in genres if g != "All"]
-    selected_genres: List[str] = []
-    for g in genre_options:
-        if st.checkbox(g, key=f"_fl_genre_{g}"):
-            selected_genres.append(g)
+    selected_genres: List[str] = st.multiselect(
+        "Genres",
+        options=genre_options,
+        placeholder="All genres",
+        label_visibility="collapsed",
+        key="_fl_genres",
+    )
 
     # Year range (MovieLens: 1902–2026)
     _section_label("Year")
+    if "_fl_year" not in st.session_state:
+        st.session_state["_fl_year"] = (default_min_year, 2026)
     year_range: Tuple[int, int] = st.slider(
         "Year range", min_value=1900, max_value=2026,
-        value=(default_min_year, 2026), step=1,
-        label_visibility="collapsed", key="_fl_year",
+        step=1, label_visibility="collapsed", key="_fl_year",
     )
 
     # Min rating displayed as 0–10; the API uses 0–5 so the caller divides by 2
     _section_label("Min rating (0–10)")
+    if "_fl_rating" not in st.session_state:
+        st.session_state["_fl_rating"] = default_min_rating
     min_rating: float = st.slider(
         "Min rating", min_value=0.0, max_value=10.0,
-        value=default_min_rating, step=0.5,
-        label_visibility="collapsed", key="_fl_rating",
+        step=0.5, label_visibility="collapsed", key="_fl_rating",
         format="%.1f ★",
     )
 
@@ -708,15 +714,6 @@ def render_hero_section(details: Dict, current_idx: int, total_count: int,
             <div class="hero-bg-container">
                 <div class="hero-bg" style="background-image:url('{poster_url}');"></div>
                 <div class="hero-grad"></div>
-            </div>
-            <div class="hero-search-top">
-                <form class="hero-search-form" method="GET" action="">
-                    <div class="hero-search-wrap">
-                        <input class="hero-search-input" type="text" name="q"
-                               placeholder="Search a movie…" autocomplete="off">
-                        <button class="hero-search-btn" type="submit">&#8594;</button>
-                    </div>
-                </form>
             </div>
             <div class="hero-content">
                 <div class="hero-genre">{genre_label}</div>

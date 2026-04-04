@@ -39,3 +39,6 @@ key.json
 
 # ── Jupyter ───────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
+
+# ── External reference projects (not part of this submission) ─────────────────
+external_*/
