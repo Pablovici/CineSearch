@@ -24,6 +24,7 @@ import streamlit.components.v1 as components
 
 import config
 from api_client import fetch_autocomplete, fetch_details, fetch_genre_poster_urls, fetch_search, post_recommend
+from loading import show_loading_screen
 from ui_components import (
     _normalize_title,
     _render_movie_card,
@@ -532,6 +533,20 @@ def _show_full_detail() -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    # ── Cinematic loading screen (first visit only) ───────────────────────────
+    # Movie cards use href-based navigation (?detail=…) which creates a new
+    # Streamlit session each time.  Skip the loader whenever the URL already
+    # carries query params — that always means an in-app navigation, not a
+    # genuine first load.
+    if not st.session_state.get("_loading_done"):
+        if len(st.query_params) > 0:
+            # In-app navigation (detail page, genre browse, etc.) → skip loader
+            st.session_state["_loading_done"] = True
+            st.session_state["_loader_shown"] = True
+        else:
+            show_loading_screen()
+            return
+
     inject_css()
 
     # ── Load favorites from disk on every fresh session ───────────────────────
