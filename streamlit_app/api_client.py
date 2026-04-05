@@ -91,3 +91,67 @@ def fetch_all_titles(base_url: str, limit: int = 30_000) -> List[Dict]:
 def fetch_details(url: str, tmdb_id: int) -> Dict:
     """Fetch enriched movie details (poster, overview, cast) from TMDB Cloud Function."""
     return _get(url, params={"tmdb_id": tmdb_id})
+
+
+# TMDB genre ID mapping (matches the genres listed in config.py)
+_TMDB_GENRE_IDS: Dict[str, int] = {
+    "Action":      28,
+    "Adventure":   12,
+    "Animation":   16,
+    "Comedy":      35,
+    "Crime":       80,
+    "Documentary": 99,
+    "Drama":       18,
+    "Fantasy":     14,
+    "Horror":      27,
+    "Romance":     10749,
+    "Sci-Fi":      878,
+    "Thriller":    53,
+    "War":         10752,
+    "Western":     37,
+}
+
+_TMDB_IMG_BASE = "https://image.tmdb.org/t/p/w500"
+_TMDB_DISCOVER = "https://api.themoviedb.org/3/discover/movie"
+
+
+def fetch_genre_poster_urls(api_key: str) -> Dict[str, str]:
+    """Call TMDB /discover/movie for each genre and return a unique poster per genre.
+
+    Tracks already-used poster paths so no two tiles show the same image.
+    Falls back to page 2 if page 1 is exhausted by duplicates.
+    Returns a dict mapping genre name → poster URL.
+    """
+    result: Dict[str, str] = {}
+    used_paths: set = set()
+
+    for genre, genre_id in _TMDB_GENRE_IDS.items():
+        try:
+            for page in (1, 2):
+                resp = requests.get(
+                    _TMDB_DISCOVER,
+                    params={
+                        "api_key":        api_key,
+                        "with_genres":    genre_id,
+                        "sort_by":        "popularity.desc",
+                        "vote_count.gte": 200,
+                        "page":           page,
+                    },
+                    timeout=10,
+                )
+                if resp.status_code != 200:
+                    break
+                movies = resp.json().get("results", [])
+                found = False
+                for movie in movies:
+                    path = movie.get("poster_path")
+                    if path and path not in used_paths:
+                        used_paths.add(path)
+                        result[genre] = f"{_TMDB_IMG_BASE}{path}"
+                        found = True
+                        break
+                if found:
+                    break   # no need to fetch page 2
+        except Exception:
+            pass
+    return result

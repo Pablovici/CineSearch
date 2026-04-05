@@ -2,9 +2,9 @@
 
 Orchestrator: wires cached API calls and delegates all rendering to ui_components.
 
-Architecture (2-layer as per assignment):
-  Layer 1 — Database  : BigQuery  (via Cloud Functions)
-  Layer 2 — Logic+UI  : Streamlit + Cloud Functions
+Architecture (2-tier as per Assignment 2):
+  Tier 1 — Backend  : Flask API  (BigQuery ML, Elasticsearch, recommendations)
+  Tier 2 — Frontend : Streamlit  (search UI, filters, movie details via Cloud Functions)
 
 Internal modules:
   app.py           ← orchestration, caching, navigation state
@@ -13,7 +13,7 @@ Internal modules:
   ui_components.py ← rendering helpers (no HTTP, no SQL)
 """
 import json
-import random
+import os
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -23,14 +23,14 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import config
-from api_client import fetch_autocomplete, fetch_details, fetch_search, post_recommend
+from api_client import fetch_autocomplete, fetch_details, fetch_genre_poster_urls, fetch_search, post_recommend
 from ui_components import (
     _normalize_title,
     _render_movie_card,
     hide_loader,
     inject_css,
     render_empty_state,
-    render_featured_grid,
+    render_genre_grid,
     render_filters,
     render_hero_section,
     render_movie_detail_full,
@@ -123,33 +123,16 @@ def _details(tmdb_id: int) -> Dict:
     return fetch_details(config.MOVIE_DETAILS_URL, tmdb_id)
 
 
-@st.cache_data(ttl=3600)
-def _featured_movies_pool() -> List[Dict]:
-    """Diverse pool for the 'Discover' section.
+_TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "02e7692e7df463d1691e91f494f1c19b")
 
-    Fetches a broad set of movies, then filters client-side to favour
-    well-known but not ubiquitous titles (rating_count 150–800) with a
-    good-but-not-perfect average (avg_rating 3.0–4.4 / 5).
-    Falls back to the unfiltered results if the pool is too small.
-    """
+
+@st.cache_data(ttl=86400, max_entries=1)
+def _genre_poster_urls() -> Dict[str, str]:
+    """Fetch one unique poster per genre from TMDB /discover (no duplicates across tiles)."""
     try:
-        results = fetch_search(
-            config.MOVIES_SEARCH_URL,
-            q="",
-            language="All",
-            genre="All",
-            min_rating=2.5,
-            min_year=1960,
-            limit=300,
-        )
-        filtered = [
-            r for r in results
-            if 150 <= int(r.get("rating_count") or 0) <= 800
-            and 3.0 <= float(r.get("avg_rating") or 0) <= 4.4
-        ]
-        return filtered if len(filtered) >= 20 else results
+        return fetch_genre_poster_urls(_TMDB_API_KEY)
     except Exception:
-        return []
+        return {}
 
 
 @st.cache_data(ttl=3600)
@@ -317,8 +300,8 @@ _EMPTY_SLOT_HTML = (
 def _render_recommendation_section() -> None:
     """Two-row recommendation block driven by multiselect preferences / favorites.
 
-    Row 1 — "Vous avez aimé"       : last 6 liked movies + "Voir tous" button.
-    Row 2 — "Vous aimerez peut-être": ML recommendations auto-triggered from preferences.
+    Row 1 — "Your Liked Movies"     : last 6 liked movies + "See all" button.
+    Row 2 — "Recommended for You"   : ML recommendations auto-triggered from preferences.
     Preferences come from sidebar multiselect (synced with ❤️ favorites on detail pages).
     """
     favs: List[Dict] = st.session_state.get("_favorites", [])
@@ -329,7 +312,7 @@ def _render_recommendation_section() -> None:
     if seed_ids != prev_seed_ids:
         st.session_state["_rec_seed_ids"] = list(seed_ids)
         try:
-            with st.spinner("Calcul en cours…"):
+            with st.spinner("Computing recommendations…"):
                 result = post_recommend(
                     config.BACKEND_URL,
                     {"selected_movie_ids": seed_ids},
@@ -341,18 +324,17 @@ def _render_recommendation_section() -> None:
             st.session_state.pop("_rec_result", None)
             st.session_state.pop("_rec_posters", None)
 
-    # ── Row 1 : Vous avez aimé ────────────────────────────────────────────────
+    # ── Row 1 : Your Liked Movies ─────────────────────────────────────────────
     col_label, col_btn = st.columns([5, 1], vertical_alignment="bottom")
     with col_label:
         st.markdown(
-            '<p style="color:rgba(255,255,255,0.42);font-size:0.68rem;font-weight:600;'
-            'letter-spacing:0.1em;text-transform:uppercase;margin:0.9rem 0 0.5rem;">'
-            'Vous avez aimé</p>',
+            '<h3 style="color:#fff;font-size:1rem;font-weight:700;'
+            'letter-spacing:-0.01em;margin:0.9rem 0 0.5rem;">Your Liked Movies</h3>',
             unsafe_allow_html=True,
         )
     with col_btn:
         if favs and st.button(
-            "Voir tous", key="_btn_see_all_favs",
+            "See all", key="_btn_see_all_favs",
             type="secondary", use_container_width=True,
         ):
             st.session_state["_view"] = "favorites"
@@ -367,31 +349,51 @@ def _render_recommendation_section() -> None:
         else:
             cols[i].markdown(_EMPTY_SLOT_HTML, unsafe_allow_html=True)
 
-    # ── Row 2 : Vous aimerez peut-être ───────────────────────────────────────
+    # ── Row 2 : Recommended for You ──────────────────────────────────────────
     st.markdown(
-        '<p style="color:rgba(255,255,255,0.42);font-size:0.68rem;font-weight:600;'
-        'letter-spacing:0.1em;text-transform:uppercase;margin:0.9rem 0 0.5rem;">'
-        'Vous aimerez peut-être</p>',
+        '<h3 style="color:#fff;font-size:1rem;font-weight:700;'
+        'letter-spacing:-0.01em;margin:0.9rem 0 0.5rem;">Recommended for You</h3>',
         unsafe_allow_html=True,
     )
     if not favs:
         st.markdown(
-            '<p style="color:rgba(255,255,255,0.3);font-size:0.8rem;margin:0.5rem 0 0.8rem;">'
-            'Select movies in the sidebar to get personalized recommendations.</p>',
+            '<p style="color:rgba(255,255,255,0.45);font-size:0.82rem;margin:0.3rem 0 0.9rem;">'
+            '❤️ Like a movie to unlock your personal recommendations — '
+            'open any film and tap <strong style="color:#fff;">Add to Favorites</strong>.</p>',
             unsafe_allow_html=True,
         )
     result     = st.session_state.get("_rec_result")
     rec_movies = result.get("recommended_movies", [])[:6] if result else []
     posters    = st.session_state.get("_rec_posters", {})
+
+    # Normalise avg_confidence within the batch so scores spread across 72–97 %.
+    # ML.RECOMMEND always returns its top-confidence results, so raw values are
+    # clustered near 1.0 — normalising shows meaningful relative differences.
+    _raw_confs  = [float(m.get("avg_confidence") or 0) for m in rec_movies]
+    _valid_conf = [c for c in _raw_confs if c > 0]
+    _min_c = min(_valid_conf) if _valid_conf else 0.0
+    _max_c = max(_valid_conf) if _valid_conf else 1.0
+    _spread = _max_c - _min_c
+
+    def _match_pct(conf_raw: Optional[float]) -> Optional[int]:
+        if conf_raw is None or float(conf_raw) <= 0:
+            return None
+        c = float(conf_raw)
+        if _spread > 1e-6:
+            return int(72 + (c - _min_c) / _spread * 25)   # 72 % … 97 %
+        return 95   # all identical → fixed "high match"
+
     cols = st.columns(6, gap="small")
     for i in range(6):
         if i < len(rec_movies):
-            _render_movie_card(cols[i], rec_movies[i], posters)
+            movie = rec_movies[i]
+            _render_movie_card(cols[i], movie, posters,
+                               match_pct=_match_pct(movie.get("avg_confidence")))
         else:
             cols[i].markdown(_EMPTY_SLOT_HTML, unsafe_allow_html=True)
 
 
-# ── Mes films aimés — full-page view ─────────────────────────────────────────
+# ── My Liked Movies — full-page view ────────────────────────────────────────
 
 def _render_all_favorites_page() -> None:
     """Full-page grid of all liked movies with per-card unlike and a clear-all."""
@@ -399,20 +401,20 @@ def _render_all_favorites_page() -> None:
 
     col_back, col_title, col_clear = st.columns([1, 4, 1], vertical_alignment="bottom")
     with col_back:
-        if st.button("← Retour", key="_back_from_favs", type="secondary"):
+        if st.button("← Back", key="_back_from_favs", type="secondary"):
             st.session_state.pop("_view", None)
             st.rerun()
     with col_title:
         favs: List[Dict] = st.session_state.get("_favorites", [])
         st.markdown(
             f'<h2 style="color:#fff;font-size:1.4rem;font-weight:700;margin:0;">'
-            f'Mes films aimés '
+            f'My Liked Movies '
             f'<span style="font-size:0.9rem;font-weight:400;color:rgba(255,255,255,0.4);">'
             f'({len(favs)})</span></h2>',
             unsafe_allow_html=True,
         )
     with col_clear:
-        if favs and st.button("🗑️ Tout supprimer", key="_btn_clear_all", type="secondary"):
+        if favs and st.button("🗑️ Clear all", key="_btn_clear_all", type="secondary"):
             st.session_state["_favorites"] = []
             _save_favorites([])
             st.session_state.pop("_rec_seed_ids", None)
@@ -423,8 +425,8 @@ def _render_all_favorites_page() -> None:
     if not favs:
         st.markdown(
             '<p style="color:rgba(255,255,255,0.4);margin-top:2rem;">'
-            'Vous n\'avez encore aimé aucun film. '
-            'Explorez le catalogue et cliquez ❤️ sur les fiches.</p>',
+            'You haven\'t liked any movies yet. '
+            'Browse the catalog and tap ❤️ on a movie page.</p>',
             unsafe_allow_html=True,
         )
         hide_loader()
@@ -444,7 +446,7 @@ def _render_all_favorites_page() -> None:
                 mid = movie.get("movieId")
                 with cols[i]:
                     if st.button(
-                        "✕ Retirer", key=f"_unlike_{mid}_{row_start}",
+                        "✕ Remove", key=f"_unlike_{mid}_{row_start}",
                         use_container_width=True,
                     ):
                         st.session_state["_favorites"] = [
@@ -453,7 +455,7 @@ def _render_all_favorites_page() -> None:
                         ]
                         _save_favorites(st.session_state["_favorites"])
                         st.session_state.pop("_rec_seed_ids", None)
-                        st.toast("Retiré de vos favoris.")
+                        st.toast("Removed from favorites.")
                         st.rerun()
             else:
                 cols[i].markdown(_EMPTY_SLOT_HTML, unsafe_allow_html=True)
@@ -481,11 +483,11 @@ def _show_full_detail() -> None:
             st.session_state["_restore_search"] = return_q
         else:
             st.session_state.pop("_detail_return_q", None)
-            # Coming from home: wipe search state + refresh Discover selection
+            # Coming from home: wipe search state
             st.session_state["_confirmed_q"]  = None
             st.session_state["_last_raw_q"]   = ""
             st.session_state["_reset_search"] = True
-            st.session_state.pop("_featured_selection", None)
+            st.session_state.pop("_browse_genre", None)
         st.rerun()
 
     tmdb_id  = st.session_state["detail_tmdb_id"]
@@ -577,6 +579,23 @@ def main() -> None:
         except Exception:
             st.query_params.clear()
 
+    # ── Genre tile click (?genre=ACTION) → browse mode ───────────────────────
+    genre_param = st.query_params.get("genre")
+    if genre_param and not st.query_params.get("detail") and not st.query_params.get("hero_tmdb"):
+        try:
+            genre_name = genre_param.strip()
+            st.query_params.clear()
+            if genre_name:
+                # Pre-select the genre filter and switch to empty-query browse mode
+                st.session_state["_fl_genres"]    = [genre_name]
+                st.session_state["_browse_genre"]  = genre_name
+                st.session_state["_confirmed_q"]   = "__browse__"
+                st.session_state["_last_raw_q"]    = ""
+                st.session_state["_visible_count"] = _PAGE_SIZE
+                st.rerun()
+        except Exception:
+            st.query_params.clear()
+
     # ── Card click via query param (?detail=ID&src=home|search&q=QUERY) ─────────
     detail_param = st.query_params.get("detail")
     if detail_param:
@@ -618,7 +637,7 @@ def main() -> None:
         _show_full_detail()
         return
 
-    # ── Mes films aimés — full-page view ──────────────────────────────────────
+    # ── My Liked Movies — full-page view ─────────────────────────────────────
     if st.session_state.get("_view") == "favorites":
         _render_all_favorites_page()
         return
@@ -824,9 +843,15 @@ def main() -> None:
 
     # Final effective query (search is now handled in hero fragment → detail navigation)
     q = st.session_state.get("_confirmed_q") or ""
+    _browse_genre = st.session_state.get("_browse_genre", "")
 
-    # ── No search query → hero carousel + Recommendations + Trending + Discover ──
-    if not q or len(q) < config.MIN_QUERY_LENGTH:
+    # If we're in browse mode (genre tile clicked), use empty string for the API
+    # but keep the genre filter pre-set so results are already filtered.
+    if q == "__browse__":
+        q = ""
+
+    # ── No search query → hero carousel + Recommendations + Trending + Genre grid ──
+    if (not q or len(q) < config.MIN_QUERY_LENGTH) and not _browse_genre:
         _hero_carousel_fragment()
 
         render_section_divider()
@@ -840,19 +865,20 @@ def main() -> None:
                 trend_posters = _prefetch_poster_urls(trending)
             render_trending_row(trending, trend_posters)
 
-        # Discover section — stable random selection (unchanged when filters move)
-        pool = _featured_movies_pool()
-        if "_featured_selection" not in st.session_state and pool:
-            st.session_state["_featured_selection"] = random.sample(pool, min(12, len(pool)))
-        featured = st.session_state.get("_featured_selection", [])
-        if featured:
-            render_section_divider()
-            with st.spinner("Loading posters…"):
-                feat_posters = _prefetch_poster_urls(featured)
-            render_featured_grid(featured, feat_posters)
+        # Genre grid — one tile per category, with TMDB poster backgrounds
+        render_section_divider()
+        with st.spinner("Loading genre covers…"):
+            genre_posters = _genre_poster_urls()
+        render_genre_grid([g for g in config.GENRES if g != "All"], poster_urls=genre_posters)
 
         hide_loader()
         return
+
+    # ── Browse mode — genre pre-selected, empty query → run search with genre filter ──
+    if _browse_genre and (not q or len(q) < config.MIN_QUERY_LENGTH):
+        # Force the genre filter to the browsed genre and perform an empty-query search
+        genre   = _browse_genre
+        q       = ""  # API accepts empty string for "all titles in genre"
 
     # ── Search ────────────────────────────────────────────────────────────────
     try:
@@ -898,7 +924,8 @@ def main() -> None:
         st.session_state["_last_raw_q"]    = ""
         st.session_state["_visible_count"] = _PAGE_SIZE
         st.session_state["_reset_search"]  = True
-        st.session_state.pop("_featured_selection", None)  # refresh Discover on return
+        st.session_state.pop("_browse_genre", None)
+        st.session_state.pop("_fl_genres", None)
         st.rerun()
 
     # ── Sort + results count row ───────────────────────────────────────────────
@@ -913,7 +940,7 @@ def main() -> None:
         )
     with col_sort:
         sort_by = st.selectbox(
-            "Trier par", _SORT_OPTIONS,
+            "Sort by", _SORT_OPTIONS,
             label_visibility="collapsed",
             key="_sort_by",
         )

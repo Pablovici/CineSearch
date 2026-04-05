@@ -228,6 +228,7 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
 
 /* ── Badges (on cards) ── */
 .mc-badge { position:absolute; top:0.45rem; left:0.45rem; z-index:2; border-radius:4px; padding:0.15rem 0.5rem; font-size:0.6rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+.mc-badge-match { background:rgba(16,185,129,0.92); color:#fff; border:1px solid rgba(52,211,153,0.6); }
 
 /* ── Badge types (detail panel) ── */
 .badge-rating { background:rgba(250,204,21,0.12); color:#FACC15; border:1px solid rgba(250,204,21,0.22); }
@@ -329,7 +330,7 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
                          font-weight: 800 !important; color: #fff !important;
                          letter-spacing: -0.03em !important; margin-bottom: 0.6rem !important;
                          text-align: center !important; }
-    /* ── Hero : texte en bas à gauche ── */
+    /* ── Hero: text at bottom-left ── */
     .hero-wrap    { min-height: 58vh !important; border-radius: 12px !important;
                     align-items: flex-end !important; }
     .hero-content { padding: 1.2rem 1.4rem 2.8rem !important; max-width: 92% !important; }
@@ -347,31 +348,34 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
     .hero-dot     { height: 2px !important; width: 14px !important; }
     .hero-dot.active { width: 22px !important; }
 
-    /* ── Marges horizontales globales sur mobile ── */
+    /* ── Global horizontal margins on mobile ── */
     .block-container {
         padding-left: 0.75rem !important;
         padding-right: 0.75rem !important;
     }
 
-    /* ── Sections accueil (4+ colonnes) : scroll horizontal façon Netflix ── */
-    [data-testid="stHorizontalBlock"]:has(.mc-card):has([data-testid="stColumn"]:nth-child(4)) {
+    /* ── Section headings (Your Liked Movies, Recommended for You, Browse by Genre) ── */
+    h3 { font-size: 0.95rem !important; margin: 0.7rem 0 0.4rem !important; }
+
+    /* ── 6-column rows (Liked + Recommended): horizontal Netflix-style scroll ── */
+    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"]:nth-child(6)) {
         overflow-x: auto !important;
         flex-wrap: nowrap !important;
         -webkit-overflow-scrolling: touch !important;
         scrollbar-width: none !important;
-        padding-bottom: 6px !important;
+        padding-bottom: 8px !important;
     }
-    [data-testid="stHorizontalBlock"]:has(.mc-card):has([data-testid="stColumn"]:nth-child(4))::-webkit-scrollbar {
+    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"]:nth-child(6))::-webkit-scrollbar {
         display: none !important;
     }
-    [data-testid="stHorizontalBlock"]:has(.mc-card):has([data-testid="stColumn"]:nth-child(4)) > [data-testid="stColumn"] {
-        min-width: 105px !important;
-        max-width: 105px !important;
-        flex: 0 0 105px !important;
-        width: 105px !important;
+    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"]:nth-child(6)) > [data-testid="stColumn"] {
+        min-width: 110px !important;
+        max-width: 110px !important;
+        flex: 0 0 110px !important;
+        width: 110px !important;
     }
 
-    /* ── Grille résultats (4 colonnes) : 2 colonnes sur mobile ── */
+    /* ── Results grid (4 columns): 2 columns on mobile ── */
     [data-testid="stHorizontalBlock"]:has(.mc-card):not(:has([data-testid="stColumn"]:nth-child(5))) {
         flex-wrap: wrap !important;
         overflow-x: hidden !important;
@@ -384,24 +388,55 @@ hr { border-color: rgba(255,255,255,0.07) !important; }
         width: 47% !important;
     }
 
-    /* ── Texte sous les cartes ── */
+    /* ── Text below cards ── */
     .mc-card  { border-radius: 9px !important; }
     .mc-title { font-size: 0.68rem !important; margin: 0.28rem 0 0.06rem !important; }
     .mc-meta  { font-size: 0.6rem !important; margin-bottom: 0.2rem !important; }
     .mc-badge { font-size: 0.5rem !important; padding: 0.08rem 0.28rem !important; }
 
-    /* ── Page de détail : réduction de padding/titres + espace réduit ── */
+    /* ── Browse by Genre: 2 columns + shorter tiles ── */
+    .gg-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+    .gg-tile { aspect-ratio: 3/4 !important; padding: 10px !important; }
+    .gg-label { font-size: 0.8rem !important; letter-spacing: 0.04em !important; }
+
+    /* ── Detail page: reduced padding/titles + spacing ── */
     .detail-hero         { min-height: unset !important; margin-bottom: 0.5rem !important; }
     .detail-hero-content { padding: 0.75rem 1.25rem 0.75rem !important; }
     .detail-hero-title   { font-size: 1.4rem !important; margin-bottom: 0.2rem !important; }
     .detail-hero-tagline { font-size: 0.78rem !important; }
 
-    /* ── Affiche du détail : taille réduite sur mobile ── */
+    /* ── Detail poster: smaller on mobile ── */
     [data-testid="stImage"] img {
         max-width: 55% !important;
         margin: 0 auto !important;
         display: block !important;
     }
+}
+
+/* ── Tablette (769 px – 1024 px) ──────────────────────────────────────────── */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+
+    /* 6-column rows: horizontal scroll with slightly wider cards */
+    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"]:nth-child(6)) {
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+    }
+    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"]:nth-child(6))::-webkit-scrollbar {
+        display: none !important;
+    }
+    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"]:nth-child(6)) > [data-testid="stColumn"] {
+        min-width: 135px !important;
+        max-width: 135px !important;
+        flex: 0 0 135px !important;
+    }
+
+    /* Browse by Genre: 3 columns on tablet */
+    .gg-grid { grid-template-columns: repeat(3, 1fr) !important; }
 }
 
 </style>
@@ -434,9 +469,9 @@ def _get_badge(avg_rating: float, rating_count: int, release_year: int
     if rating_count >= 500:
         return ("POPULAR",   "#60A5FA", "rgba(96,165,250,0.18)",  "rgba(96,165,250,0.35)")
     if release_year >= 2015:
-        return ("RÉCENT",    "#34D399", "rgba(52,211,153,0.18)",  "rgba(52,211,153,0.35)")
+        return ("RECENT",    "#34D399", "rgba(52,211,153,0.18)",  "rgba(52,211,153,0.35)")
     if release_year and release_year <= 1985:
-        return ("CLASSIQUE", "#A78BFA", "rgba(167,139,250,0.18)", "rgba(167,139,250,0.35)")
+        return ("CLASSIC",   "#A78BFA", "rgba(167,139,250,0.18)", "rgba(167,139,250,0.35)")
     return None
 
 
@@ -448,6 +483,7 @@ def _render_movie_card(
     poster_urls: Dict[int, str],
     src: str = "home",
     q_encoded: str = "",
+    match_pct: Optional[int] = None,
 ) -> None:
     """Render a single movie poster card into a Streamlit column.
 
@@ -484,15 +520,20 @@ def _render_movie_card(
         gradient = _genre_gradient(str(movie.get("genres", "")))
         inner_html = f'<div class="mc-poster-fallback" style="background:{gradient};"></div>'
 
-    # ── Badge (TOP RATED / POPULAR / RÉCENT / CLASSIQUE) ─────────────────────
+    # ── Badge: ML match % (recommendations) or quality label (search/trending) ──
     badge_html = ""
-    badge_info = _get_badge(rating, votes, year) if year else None
-    if badge_info:
-        label, color, bg, border = badge_info
+    if match_pct is not None:
         badge_html = (
-            f'<span class="mc-badge" style="background:{bg};color:{color};'
-            f'border:1px solid {border};">{label}</span>'
+            f'<span class="mc-badge mc-badge-match">{match_pct}% Match</span>'
         )
+    else:
+        badge_info = _get_badge(rating, votes, year) if year else None
+        if badge_info:
+            label, color, bg, border = badge_info
+            badge_html = (
+                f'<span class="mc-badge" style="background:{bg};color:{color};'
+                f'border:1px solid {border};">{label}</span>'
+            )
 
     # ── Clickable link wrapping the card ──────────────────────────────────────
     if tmdb_id:
@@ -532,7 +573,7 @@ _LOADING_SCREEN = """
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; gap: 1.5rem;
     font-family: 'Montserrat', -apple-system, sans-serif;
-    /* Fallback de sécurité : disparaît après 8s si le JS ne se déclenche pas */
+    /* Safety fallback: hides after 8s if JS does not trigger */
     animation: cine-hide 0.6s ease 8s forwards;
 }
 .cine-loader-logo {
@@ -705,7 +746,7 @@ def render_hero_section(details: Dict, current_idx: int, total_count: int,
     # CTA button: <a> tag with query param so click is handled by main()
     cta_html = ""
     if tmdb_id:
-        cta_html = f'<a class="hero-cta-btn" href="?hero_tmdb={tmdb_id}" target="_self">&#9654;&nbsp; En savoir plus</a>'
+        cta_html = f'<a class="hero-cta-btn" href="?hero_tmdb={tmdb_id}" target="_self">&#9654;&nbsp; Learn more</a>'
 
     st.markdown(
         f"""
@@ -728,19 +769,125 @@ def render_hero_section(details: Dict, current_idx: int, total_count: int,
     )
 
 
-# ── Featured grid (Discover) ────────────────────────────────────────────────
+# ── Genre grid (Discover / Browse by category) ───────────────────────────────
 
-def render_featured_grid(movies: List[Dict], poster_urls: Dict[int, str]) -> None:
-    """Render the 'Discover' section: up to 12 cards in 6 columns."""
+_GENRE_GRID_STYLES: Dict[str, Dict[str, str]] = {
+    "Action":      {"bg": "linear-gradient(135deg,#7b0000 0%,#1a0000 100%)", "text": "#ff6b6b"},
+    "Adventure":   {"bg": "linear-gradient(135deg,#0d4a2a 0%,#0a1a2a 100%)", "text": "#6bffb8"},
+    "Animation":   {"bg": "linear-gradient(135deg,#003380 0%,#001428 100%)", "text": "#6bbfff"},
+    "Comedy":      {"bg": "linear-gradient(135deg,#5a3000 0%,#1a1000 100%)", "text": "#ffc76b"},
+    "Crime":       {"bg": "linear-gradient(135deg,#1a0033 0%,#07000e 100%)", "text": "#c86bff"},
+    "Documentary": {"bg": "linear-gradient(135deg,#0d3333 0%,#0a0a14 100%)", "text": "#6bffe4"},
+    "Drama":       {"bg": "linear-gradient(135deg,#0a0a40 0%,#140014 100%)", "text": "#9b9bff"},
+    "Fantasy":     {"bg": "linear-gradient(135deg,#2a0066 0%,#0a0028 100%)", "text": "#d06bff"},
+    "Horror":      {"bg": "linear-gradient(135deg,#1a0000 0%,#0a0005 100%)", "text": "#ff4444"},
+    "Romance":     {"bg": "linear-gradient(135deg,#4d0028 0%,#1a000a 100%)", "text": "#ff6bb5"},
+    "Sci-Fi":      {"bg": "linear-gradient(135deg,#00004d 0%,#0a001e 100%)", "text": "#6bf5ff"},
+    "Thriller":    {"bg": "linear-gradient(135deg,#0a0a1a 0%,#050508 100%)", "text": "#b0b0ff"},
+    "War":         {"bg": "linear-gradient(135deg,#2a2200 0%,#0a0800 100%)", "text": "#ffe96b"},
+    "Western":     {"bg": "linear-gradient(135deg,#3d1f00 0%,#160a00 100%)", "text": "#ffb86b"},
+}
+
+
+def render_genre_grid(genres: List[str], poster_urls: Optional[Dict[str, str]] = None) -> None:
+    """Render a grid of clickable genre tiles with movie-poster backgrounds.
+
+    Each tile shows a TMDB poster (if available) as a full-bleed background with a
+    dark gradient overlay at the bottom, and the genre name anchored to the bottom-left.
+    Falls back to a colour gradient when no poster is supplied.
+    """
     st.markdown(
         '<h3 style="color:#fff;font-size:1.25rem;font-weight:700;'
-        'margin:1.75rem 0 1rem;letter-spacing:-0.01em;">Discover</h3>',
+        'margin:1.75rem 0 1rem;letter-spacing:-0.01em;">Browse by Genre</h3>',
         unsafe_allow_html=True,
     )
-    n_cols = 6
-    cols = st.columns(n_cols, gap="small")
-    for i, movie in enumerate(movies[:12]):
-        _render_movie_card(cols[i % n_cols], movie, poster_urls)
+
+    posters = poster_urls or {}
+    tiles_html = ""
+    for genre in genres:
+        fallback = _GENRE_GRID_STYLES.get(genre, {"bg": "linear-gradient(135deg,#1a1a2e,#0d0d1a)"})
+        poster = posters.get(genre)
+        if poster:
+            # <img> tag positioned absolutely — avoids CSP blocks on background-image
+            img_html = (
+                f'<img class="gg-poster" src="{poster}" alt="" loading="lazy"/>'
+                f'<div class="gg-vignette"></div>'
+            )
+            tile_style = ""
+        else:
+            img_html = ""
+            tile_style = f'style="background:{fallback["bg"]}"'
+
+        tiles_html += (
+            f'<a class="gg-tile" href="/?genre={genre}" target="_self" {tile_style}>'
+            f'{img_html}'
+            f'<span class="gg-label">{genre}</span>'
+            f'</a>'
+        )
+
+    st.markdown(
+        f"""
+        <style>
+        .gg-grid {{
+            display:grid;
+            grid-template-columns:repeat(4,1fr);
+            gap:10px;
+            margin-bottom:2.5rem;
+        }}
+        /* breakpoints handled by inject_css() */
+        .gg-tile {{
+            position:relative;
+            aspect-ratio:2/3;
+            border-radius:10px;
+            overflow:hidden;
+            display:flex;
+            align-items:flex-end;
+            justify-content:flex-start;
+            padding:14px;
+            text-decoration:none;
+            border:1px solid rgba(255,255,255,0.07);
+            transition:transform .2s ease,box-shadow .2s ease;
+            cursor:pointer;
+            background:#111;
+        }}
+        .gg-tile:hover {{
+            transform:scale(1.04);
+            box-shadow:0 12px 40px rgba(0,0,0,0.65);
+        }}
+        .gg-tile:hover .gg-poster {{
+            filter:brightness(1.12) saturate(1.1);
+        }}
+        .gg-poster {{
+            position:absolute;
+            inset:0;
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            object-position:center top;
+            transition:filter .2s ease;
+        }}
+        .gg-vignette {{
+            position:absolute;
+            inset:0;
+            background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.3) 50%,rgba(0,0,0,0.05) 100%);
+            pointer-events:none;
+        }}
+        .gg-label {{
+            position:relative;
+            z-index:2;
+            font-size:.95rem;
+            font-weight:700;
+            letter-spacing:.06em;
+            text-transform:uppercase;
+            color:#fff;
+            text-shadow:0 2px 8px rgba(0,0,0,0.9);
+            line-height:1.1;
+        }}
+        </style>
+        <div class="gg-grid">{tiles_html}</div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_section_divider() -> None:

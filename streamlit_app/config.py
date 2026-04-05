@@ -15,7 +15,7 @@ MOVIE_DETAILS_URL: str = os.getenv(
     "https://movie-details-120497552025.europe-west6.run.app",
 )
 
-# Local Flask backend (Assignment 2 — recommendations API; stub for now)
+# Local Flask backend (Assignment 2 — recommendations + Elasticsearch API)
 BACKEND_URL: str = os.getenv("BACKEND_URL", "https://cinesearch-backend-120497552025.europe-west6.run.app")
 
 # ── Search behaviour ──────────────────────────────────────────────────────────
