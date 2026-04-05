@@ -18,7 +18,7 @@ The application follows the required **2-tier microservice architecture** with t
   User (browser)  ───>  │  Tier 1 — Streamlit Frontend            │
                         │  (Docker container on Cloud Run)        │
                         │  - Movie search with ES autocomplete    │
-                        │  - Multi-select movies for preferences  │
+                        │  - Like movies to seed recommendations  │
                         │  - Recommendation display with posters  │
                         │  - Filters (language, genre, year,      │
                         │    rating)                               │
@@ -44,14 +44,13 @@ The application follows the required **2-tier microservice architecture** with t
 
 ### Cloud Functions (Assignment 1 — reused)
 
-Four Google Cloud Functions handle catalogue search and TMDB enrichment, deployed on Cloud Run:
+Three Google Cloud Functions handle catalogue search and TMDB enrichment, deployed on Cloud Run:
 
 | Function | Purpose | URL |
 |---|---|---|
-| `movies_search` | Full-text search with filters (BigQuery) | `https://movies-search-120497552025.europe-west6.run.app` |
-| `movies_autocomplete` | SQL LIKE fallback autocomplete | `https://movies-autocomplete-120497552025.europe-west6.run.app` |
-| `movie_details` | TMDB API: poster, cast, overview, providers | `https://movie-details-120497552025.europe-west6.run.app` |
-| `movies_sample` | Random movie samples for homepage | `https://movies-sample-120497552025.europe-west6.run.app` |
+| `movies_search` | Full-text search with filters (BigQuery JOIN + GROUP BY + HAVING) | `https://movies-search-120497552025.europe-west6.run.app` |
+| `movies_autocomplete` | SQL LIKE fallback autocomplete (used when Elasticsearch is unavailable) | `https://movies-autocomplete-120497552025.europe-west6.run.app` |
+| `movie_details` | TMDB API enrichment: poster, cast, overview, streaming providers, director filmography | `https://movie-details-120497552025.europe-west6.run.app` |
 
 ---
 
@@ -59,9 +58,9 @@ Four Google Cloud Functions handle catalogue search and TMDB enrichment, deploye
 
 The web app user is a **cold start user** — they have no userId in the training dataset. We solve this as follows:
 
-### Step 1 — User selects preferred movies
+### Step 1 — User likes preferred movies
 
-The user selects movies via the **multiselect dropdown** in the sidebar (search-as-you-type with Elasticsearch autocomplete). These selected movies become the "seed" preferences.
+The user searches for movies using the **search bar** (powered by Elasticsearch autocomplete). They click on a movie to open its detail page, then click **"Add to Favorites" (♡)** to like it. Liked movies are persisted locally and displayed in the "Your Liked Movies" row on the home page. Each time the favorites list changes, a new recommendation batch is automatically computed.
 
 ### Step 2 — Find similar users in the dataset
 
@@ -85,7 +84,11 @@ LIMIT @top_k
 
 **Ranking logic:** Users are ranked by **overlap count** — how many of the seed movies they rated highly. The more movies a user has in common with the cold-start user's selection, the higher they rank. Ties are broken by userId (deterministic). We keep the **top 10 most similar users**.
 
-### Step 3 — Generate recommendations via BigQuery ML
+### Step 3 — Cross-dataset filtering
+
+The user selects movies from the large catalogue (`ASSIGNEMENT1`, ~45K movies indexed in Elasticsearch). The ML model only knows movies from the smaller dataset (`ASSIGNEMENT2`). Before computing recommendations, we filter the selected movie IDs to keep only those present in `ASSIGNEMENT2.ratings`. If none of the selected movies exist in the ML dataset, we fall back to popular movies.
+
+### Step 4 — Generate recommendations via BigQuery ML
 
 We run `ML.RECOMMEND` on the pre-trained **Matrix Factorization** model (`first_MF_model`) for all similar users:
 
@@ -119,30 +122,30 @@ LIMIT 10
 
 **Aggregation strategy:**
 1. For each similar user, keep only their **top 20 recommendations** (prevents one prolific user from dominating).
-2. **Exclude** the seed movies the user already selected.
+2. **Exclude** the seed movies the user already liked.
 3. Average the ML confidence scores across all similar users.
 4. Final ranking: `avg_confidence DESC`, then `user_count DESC` as tiebreaker.
 5. Return the **top 10** recommendations with posters (from TMDB API).
 
 ### Fallbacks
 
-- **No movies selected** → Display the top-10 most popular movies globally (ranked by `rating_count DESC, avg_rating DESC`).
-- **Selected movies not in ML dataset** → Popular movies, excluding the user's seeds.
+- **No movies liked** → Display the top-10 most popular movies globally (ranked by `rating_count DESC, avg_rating DESC`).
+- **Liked movies not in ML dataset** → Popular movies, excluding the user's seeds.
 - **No similar users found** → Same popular fallback.
 
 ---
 
 ## Features
 
-- **Elasticsearch autocomplete** — Real-time search-as-you-type with prefix boost + ngram matching, Python re-ranking
-- **Movie multi-select** — Sidebar dropdown to select multiple preferred movies for personalized recommendations
-- **Personalized recommendations** — BigQuery ML Matrix Factorization via similar users (cold start handling)
-- **Generic recommendations** — Top popular movies when no preferences are set
-- **Movie detail pages** — TMDB poster, overview, cast, runtime, budget, revenue, streaming providers, director filmography
-- **Favorites system** — Persistent heart (like) button on each movie, also seeds recommendations
-- **Advanced filters** — Language, genre, year range, minimum rating
-- **Hero carousel** — Auto-rotating banner with featured films
-- **Trending & Discover** — Curated homepage sections
+- **Elasticsearch autocomplete** — Real-time search-as-you-type via the Flask backend, with prefix boost, ngram matching, and Python-side re-ranking. Falls back to SQL LIKE via Cloud Function if Elasticsearch is unavailable.
+- **Favorites system** — Like movies via the ❤️ button on any detail page; liked movies are persisted across sessions and automatically seed personalized recommendations on the home page.
+- **Personalized recommendations** — BigQuery ML Matrix Factorization via similar users (cold start handling). Displayed in a "Recommended for You" row with ML confidence scores shown as match percentages.
+- **Generic recommendations** — Top popular movies displayed when no movies have been liked yet.
+- **Movie detail pages** — TMDB poster, synopsis, cast, runtime, budget, revenue, streaming providers (flatrate/rent/buy), director filmography.
+- **Advanced filters** — Language, genre (multiselect), year range (min/max slider), minimum rating. Applied via the sidebar on search results.
+- **Hero carousel** — Auto-rotating banner with 5 featured films, updating every 5 seconds.
+- **Browse by Genre** — Clickable genre tiles with TMDB poster backgrounds, leading to filtered results.
+- **Trending** — Top-rated recent films displayed on the home page.
 
 ---
 
@@ -150,8 +153,8 @@ LIMIT 10
 
 | Dataset | Tables | Purpose |
 |---|---|---|
-| `ASSIGNEMENT1` | `movies`, `rating`, `links` | Large catalogue (~45K movies) indexed in Elasticsearch for search |
-| `ASSIGNEMENT2` | `movies`, `ratings`, `links` | Small dataset (ml-small) for Matrix Factorization model + recommendations |
+| `ASSIGNEMENT1` | `movies`, `rating` | Large catalogue (~45K movies) — used for search, filters, and indexed in Elasticsearch for autocomplete |
+| `ASSIGNEMENT2` | `movies`, `ratings`, `links` | Small dataset (ml-small) — used for Matrix Factorization model training and recommendations |
 
 ### BigQuery ML Model
 
@@ -238,8 +241,8 @@ CineSearch/
 │
 ├── backend/                   ← Tier 2: Flask API (Docker container)
 │   ├── Dockerfile             ← Python 3.11 + gunicorn
-│   ├── app.py                 ← /recommend, /autocomplete, /movies/titles
-│   ├── es_service.py          ← Elasticsearch autocomplete + fetch_all_titles
+│   ├── app.py                 ← /health, /autocomplete, /recommend
+│   ├── es_service.py          ← Elasticsearch autocomplete + title fetching
 │   ├── index_movies_to_es.py  ← One-shot BigQuery → ES indexing script
 │   ├── requirements.txt
 │   └── .env.example
@@ -249,14 +252,14 @@ CineSearch/
 │   ├── app.py                 ← Orchestrator: caching, navigation, state
 │   ├── config.py              ← Cloud Function URLs + UI constants
 │   ├── api_client.py          ← HTTP calls to backend + Cloud Functions
-│   ├── ui_components.py       ← All Streamlit rendering
+│   ├── ui_components.py       ← All Streamlit rendering (glassmorphic design)
 │   └── requirements.txt
 │
-└── cloud_functions/           ← Google Cloud Functions (deployed)
+└── cloud_functions/           ← Google Cloud Functions (reference copies)
     ├── movies_search/         ← SQL full-text search with filters
-    ├── movies_autocomplete/   ← SQL LIKE autocomplete (fallback)
+    ├── movies_autocomplete/   ← SQL LIKE autocomplete (ES fallback)
     ├── movie_details/         ← TMDB API: poster, cast, providers
-    └── movies_sample/         ← SQL random samples for homepage
+    └── movies_sample/         ← Random movie samples
 ```
 
 ---
@@ -265,13 +268,13 @@ CineSearch/
 
 | Requirement | Status |
 |---|---|
-| Movie recommendation functionality | Implemented (BQML + similar users + popular fallback) |
-| 2-tier structure (separate Docker containers) | Backend (Flask) + Frontend (Streamlit) |
-| Elasticsearch for autocomplete | Elastic Cloud, prefix + bool_prefix + Python re-ranking |
-| Cold start handling | Overlap-based user similarity → ML.RECOMMEND |
-| Movie posters | TMDB API via Cloud Function |
-| Multiple movie selection | Sidebar multiselect dropdown |
-| Generic recommendations (no selection) | Top-10 popular movies |
-| Dockerized | Both services have Dockerfiles + docker-compose.yml |
+| Movie recommendation functionality | Implemented (BQML Matrix Factorization + similar users + popular fallback) |
+| 2-tier structure (separate Docker containers) | Backend (Flask) + Frontend (Streamlit) on Cloud Run |
+| Elasticsearch for autocomplete | Elastic Cloud with `search_as_you_type` mapping, prefix + bool_prefix + Python re-ranking |
+| Cold start handling | Overlap-based user similarity → cross-dataset filtering → ML.RECOMMEND |
+| Movie posters | TMDB API via Cloud Function (`movie_details`) |
+| Multiple movie selection | Users like movies via ❤️ on detail pages; liked movies seed recommendations |
+| Generic recommendations (no selection) | Top-10 popular movies (rating_count DESC, avg_rating DESC) |
+| Dockerized | Both services have Dockerfiles + docker-compose.yml for local dev |
 | Deployed on Google Cloud | Cloud Run (europe-west6) |
-| SQL queries logged in terminal | All BigQuery queries printed to stdout |
+| SQL queries logged in terminal | All BigQuery queries printed to stdout via `run_bigquery_to_dicts()` |

@@ -298,11 +298,11 @@ _EMPTY_SLOT_HTML = (
 
 
 def _render_recommendation_section() -> None:
-    """Two-row recommendation block driven by multiselect preferences / favorites.
+    """Two-row recommendation block driven by the user's liked movies (favorites).
 
-    Row 1 — "Your Liked Movies"     : last 6 liked movies + "See all" button.
-    Row 2 — "Recommended for You"   : ML recommendations auto-triggered from preferences.
-    Preferences come from sidebar multiselect (synced with ❤️ favorites on detail pages).
+    Row 1 — "Your Liked Movies"   : last 6 liked movies + "See all" button.
+    Row 2 — "Recommended for You" : ML recommendations auto-triggered whenever favorites change.
+    Seeds come from movies the user liked via the ❤️ button on any movie detail page.
     """
     favs: List[Dict] = st.session_state.get("_favorites", [])
     seed_ids: List[int] = [f["movieId"] for f in favs]
