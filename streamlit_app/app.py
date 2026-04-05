@@ -23,7 +23,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import config
-from api_client import fetch_all_titles, fetch_autocomplete, fetch_details, fetch_search, post_recommend
+from api_client import fetch_autocomplete, fetch_details, fetch_search, post_recommend
 from ui_components import (
     _normalize_title,
     _render_movie_card,
@@ -182,23 +182,6 @@ def _trending_movies_data() -> List[Dict]:
     except Exception:
         return []
 
-
-@st.cache_data(ttl=3600)
-def _all_movies_for_multiselect() -> Dict[str, Dict]:
-    """Load all movie titles from Flask /movies/titles.
-
-    Returns {title: {movieId, tmdbId}} dict for use in selectbox/multiselect.
-    Falls back to {} silently if backend is unavailable.
-    """
-    try:
-        movies = fetch_all_titles(config.BACKEND_URL, limit=30_000)
-        return {
-            m["title"]: {"movieId": m["movieId"], "tmdbId": m.get("tmdbId")}
-            for m in movies
-            if m.get("title") and m.get("movieId") is not None
-        }
-    except Exception:
-        return {}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -477,83 +460,6 @@ def _render_all_favorites_page() -> None:
 
     hide_loader()
 
-
-# ── Favorites section ────────────────────────────────────────────────────────
-
-def _render_favorites_section() -> None:
-    """Show saved favorites and let the user get ML recommendations from them.
-
-    Only renders when the _favorites list is non-empty.
-    The ❤️ button on each detail page adds/removes entries from that list.
-    """
-    favs: List[Dict] = st.session_state.get("_favorites", [])
-    if not favs:
-        return
-
-    n = len(favs)
-    st.markdown(
-        f'<h3 style="color:#fff;font-size:1.25rem;font-weight:700;'
-        f'margin:1.75rem 0 0.75rem;letter-spacing:-0.01em;">'
-        f'My Favorites <span style="font-size:0.85rem;font-weight:400;'
-        f'color:rgba(255,255,255,0.4);">({n})</span></h3>',
-        unsafe_allow_html=True,
-    )
-
-    # Cards row for saved favorites
-    fav_posters = _prefetch_poster_urls(favs)
-    display_favs = favs[:6]
-    cols = st.columns(len(display_favs), gap="small")
-    for i, movie in enumerate(display_favs):
-        _render_movie_card(cols[i], movie, fav_posters)
-
-    # Action buttons
-    col_rec, col_clear, _ = st.columns([2, 2, 4])
-    with col_rec:
-        if st.button("Recommend from Favorites", key="_btn_fav_recommend", type="primary"):
-            movie_ids = [f["movieId"] for f in favs]
-            try:
-                with st.spinner("Fetching recommendations…"):
-                    result = post_recommend(
-                        config.BACKEND_URL,
-                        {"selected_movie_ids": movie_ids},
-                    )
-                rec_movies = result.get("recommended_movies", [])
-                st.session_state["_fav_rec_result"]  = result
-                st.session_state["_fav_rec_posters"] = _prefetch_poster_urls(rec_movies)
-            except Exception as exc:
-                st.session_state.pop("_fav_rec_result", None)
-                st.error(f"Recommendation failed: {exc}")
-
-    with col_clear:
-        if st.button("Clear all", key="_btn_clear_favs", type="secondary"):
-            st.session_state.pop("_favorites", None)
-            st.session_state.pop("_fav_rec_result", None)
-            st.session_state.pop("_fav_rec_posters", None)
-            st.rerun()
-
-    # Recommendation results from favorites
-    fav_result = st.session_state.get("_fav_rec_result")
-    if not fav_result:
-        return
-
-    rec_movies = fav_result.get("recommended_movies", [])
-    mode       = fav_result.get("recommendation_mode", "")
-    mode_label = _REC_MODE_LABELS.get(mode, "Recommendations")
-    posters    = st.session_state.get("_fav_rec_posters", {})
-
-    st.markdown(
-        f'<p style="color:rgba(255,255,255,0.42);font-size:0.68rem;font-weight:600;'
-        f'letter-spacing:0.1em;text-transform:uppercase;margin:1.25rem 0 0.6rem;">'
-        f'{mode_label}</p>',
-        unsafe_allow_html=True,
-    )
-    if not rec_movies:
-        st.info("No recommendations returned.")
-        return
-    display_rec = rec_movies[:6]
-    cols = st.columns(len(display_rec), gap="small")
-    for i, movie in enumerate(display_rec):
-        _render_movie_card(cols[i], movie, posters)
 
 
 # ── Full-page detail view ─────────────────────────────────────────────────────

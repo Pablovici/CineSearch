@@ -10,6 +10,7 @@ Environment variables required:
 from __future__ import annotations
 
 import os
+import re
 from elasticsearch import Elasticsearch
 
 ES_INDEX = "movies_catalog_v1"
@@ -67,12 +68,10 @@ def fetch_all_titles(limit: int = 30_000) -> list[dict]:
         return []
 
 
-import re as _re
-
-_ARTICLE_RE = _re.compile(
+_ARTICLE_RE = re.compile(
     r"^(.+?),\s+(The|A|An|Le|La|Les|L'|El|Los|Las|Un|Une|Die|Das|Der|Ein)"
     r"(\s+\(.+\))?$",
-    _re.IGNORECASE,
+    re.IGNORECASE,
 )
 
 

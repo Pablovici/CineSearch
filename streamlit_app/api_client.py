@@ -17,8 +17,6 @@ def _get(url: str, params: Optional[Dict] = None) -> Dict:
     Raises RuntimeError on HTTP errors or non-JSON responses.
     """
     resp = requests.get(url, params=params or {}, timeout=_TIMEOUT)
-    content_type = resp.headers.get("content-type", "")
-
     if resp.status_code >= 400:
         snippet = resp.text[:300].replace("\n", " ")
         raise RuntimeError(
@@ -35,8 +33,6 @@ def _get(url: str, params: Optional[Dict] = None) -> Dict:
 def _post_json(url: str, json_body: Optional[Dict] = None) -> Dict:
     """POST *url* with JSON body and return parsed JSON."""
     resp = requests.post(url, json=json_body if json_body is not None else {}, timeout=_TIMEOUT)
-    content_type = resp.headers.get("content-type", "")
-
     if resp.status_code >= 400:
         snippet = resp.text[:300].replace("\n", " ")
         raise RuntimeError(

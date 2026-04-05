@@ -16,20 +16,20 @@ import streamlit as st
 # MovieLens stores titles with articles moved to the end, e.g. "Animatrix, The".
 # This regex moves them back to the front for display.
 _ARTICLE_SUFFIX_RE = re.compile(
-    r"^(.*),\s+(The|A|An|Les|Le|La|L'|Die|Der|Das|El|Los|Las|Un|Une)\s*$",
+    r"^(.*),\s+(The|A|An|Les|Le|La|L'|Die|Der|Das|El|Los|Las|Un|Une)(\s+\(.*\))?\s*$",
     re.IGNORECASE,
 )
 
 
 def _normalize_title(title: str) -> str:
-    """Convert 'Title, Article' → 'Article Title' for display."""
+    """Convert 'Title, Article (year)' → 'Article Title (year)' for display."""
     m = _ARTICLE_SUFFIX_RE.match(title)
     if not m:
         return title
-    article, rest = m.group(2), m.group(1)
+    rest, article, suffix = m.group(1), m.group(2), m.group(3) or ""
     if article.endswith("'"):
-        return f"{article}{rest}"
-    return f"{article} {rest}"
+        return f"{article}{rest}{suffix}"
+    return f"{article} {rest}{suffix}"
 
 
 # ── Genre gradients (poster fallback) ─────────────────────────────────────────
